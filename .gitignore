@@ -1,0 +1,30 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# database and downloaded PDFs (user data, not part of the repo)
+*.db
+*.sqlite
+pdfs/
+
+# macOS
+.DS_Store
+
+# editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# virtual envs
+.venv/
+venv/
+env/
+
+# build artifacts
+dist/
+build/
+*.egg-info/
+src/*.egg-info/
