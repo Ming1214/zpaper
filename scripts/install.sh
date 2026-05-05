@@ -18,7 +18,7 @@ mkdir -p "$LIB_DIR/pdfs"
 # 3. Install Claude Code skill
 echo "[3/3] Installing Claude Code skill..."
 mkdir -p "$SKILL_DIR"
-cp "$REPO_ROOT/skill/skill.md" "$SKILL_DIR/skill.md"
+cp "$REPO_ROOT/skill/SKILL.md" "$SKILL_DIR/SKILL.md"
 
 echo ""
 echo "Done."
