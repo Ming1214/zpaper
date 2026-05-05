@@ -1,215 +1,234 @@
-# zpaper — Literature Management & Reading Assistant for Claude Code
+<div align="center">
 
-A personal research assistant that lives inside [Claude Code](https://claude.ai/code). Import papers, search your library, deep-read PDFs section by section, take notes, discover connections, and generate survey drafts — all through natural language, without leaving your terminal.
+# 📚 zpaper
 
-No GUI. No cloud. Everything stored locally.
+**Your personal research assistant, living inside [Claude Code](https://claude.ai/code).**
 
----
+Import papers · Search your library · Deep-read PDFs · Take notes · Discover connections · Generate surveys
 
-## What it does
-
-| Feature | How it works |
-|---|---|
-| **Import papers** | Paste an arXiv ID or URL — metadata is fetched automatically and the PDF is downloaded. Or drag in a local PDF. |
-| **Search library** | Full-text search across titles, abstracts, keywords, and your own notes. |
-| **Search arXiv** | Query arXiv directly and import results in one step. |
-| **Summary mode** | Claude reads the full paper and produces a structured summary: Background / Method / Results / Limitations / Prior Work. |
-| **Deep read mode** | Read the full paper or jump to a specific section. Claude explains each part and asks a question to check your understanding. |
-| **Explain a passage** | Paste a keyword or phrase you don't understand — Claude finds all matching passages in the PDF (with fuzzy matching for line-break artifacts) and explains them in context. |
-| **Notes** | Add freeform notes to any paper. Search notes across your entire library. Export to Markdown. |
-| **Related papers** | Automatically find papers in your library that share keywords, topics, or tags — with an explanation of why they're related. |
-| **Graph mode** | See the timeline and connection map of your library (or a topic slice of it). |
-| **Survey mode** | Pick a topic — Claude synthesizes all relevant papers and your notes into a structured survey draft with inline citations. |
+*All through natural language. No GUI. No cloud. Everything local.*
 
 ---
 
-## Requirements
+[![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-skill-CC785C?style=flat-square&logo=anthropic&logoColor=white)](https://claude.ai/code)
+[![License](https://img.shields.io/badge/License-MIT-22C55E?style=flat-square)](LICENSE)
+[![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Linux-lightgrey?style=flat-square)]()
 
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (CLI)
-- Python 3.9+
-- `pymupdf` and `requests` (see install below)
+</div>
 
 ---
 
-## Installation
+## ✨ Features
 
-### 1. Clone the repo
+<table>
+<tr>
+<td width="50%">
+
+**📥 Import & Organize**
+- Paste an arXiv ID, URL, or local path — metadata and PDF fetched automatically
+- Tag papers, track read status (`unread` / `reading` / `read`)
+- Full-text search across titles, abstracts, keywords, and notes
+
+</td>
+<td width="50%">
+
+**🌐 Discover**
+- Search arXiv directly and import results in one step
+- Automatically surface related papers with reasons
+- Visualize your library as a timeline and connection graph
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**🔍 Read & Understand**
+- Structured summary: Background · Method · Results · Limitations
+- Section-by-section deep read with comprehension checks
+- Paste any term — Claude finds it in the PDF and explains it in context
+
+</td>
+<td width="50%">
+
+**📝 Annotate & Synthesize**
+- Add freeform notes to any paper, search them across your entire library
+- Export notes to Markdown
+- Generate a cited survey draft on any topic
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🚀 Installation
+
+**Prerequisites:** [Claude Code](https://docs.anthropic.com/en/docs/claude-code) · Python 3.9+ · `pymupdf` · `requests`
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/zpaper.git
 cd zpaper
-```
-
-### 2. Run the installer
-
-```bash
 bash scripts/install.sh
 ```
 
-This does three things:
-1. Installs the `zpaper` Python package (editable install via `pip install -e .`)
-2. Creates `~/.scholarmind/` for your literature database and PDFs
-3. Copies the Claude Code skill file to `~/.claude/skills/paper/`
+The installer does three things:
 
-After installation, the `paper` command is available globally in your terminal, and Claude Code will recognize the `/paper` skill.
+1. 📦 Installs the `zpaper` Python package (`pip install -e .`)
+2. 🗄️ Creates `~/.scholarmind/` for your database and PDFs
+3. 🔌 Copies the skill file to `~/.claude/skills/paper/`
 
-That's it. Open a Claude Code session and start using `/paper`.
+> Open any Claude Code session and start with `/paper`.
 
 ---
 
-## Quick Start
+## ⚡ Quick Start
 
-```
-# Import a paper from arXiv
+```bash
+# ── Import ──────────────────────────────────────────
 /paper add 1706.03762
-
-# Import from a URL
 /paper add https://arxiv.org/abs/2310.06825
-
-# Import a local PDF
 /paper add ~/Downloads/my_paper.pdf
 
-# Search arXiv and pick what to import
+# ── Search ──────────────────────────────────────────
+/paper search "attention mechanism"
 /paper web-search "vision language model survey"
 
-# Search your local library
-/paper search "attention mechanism"
+# ── Read ────────────────────────────────────────────
+/paper read arxiv:1706.03762                       # summarize
+/paper read arxiv:1706.03762 --mode deep           # section by section
 
-# Summarize a paper
-/paper read arxiv:1706.03762
-
-# Deep read — section by section with Claude
-/paper read arxiv:1706.03762 --mode deep
-
-# Add a note while reading
-/paper note arxiv:1706.03762 This is where they justify dropping recurrence entirely
-
-# Find related papers in your library
+# ── Annotate ────────────────────────────────────────
+/paper note arxiv:1706.03762 This is key
 /paper related arxiv:1706.03762
 
-# Generate a survey draft on a topic
-/paper survey transformer language model
+# ── Synthesize ──────────────────────────────────────
+/paper survey "transformer language model"
 ```
 
-You can also just talk to Claude naturally inside Claude Code:
+Or just talk to Claude naturally:
 
-> "Add the BERT paper to my library"
-> "Summarize the GPT-3 paper for me"
-> "What papers do I have related to diffusion models?"
-> "Write me a survey on vision-language pre-training"
+> 💬 *"Add the BERT paper to my library"*
+> 💬 *"Summarize GPT-3 for me"*
+> 💬 *"What papers do I have on diffusion models?"*
+> 💬 *"Write a survey on vision-language pre-training"*
 
 ---
 
-## Full Command Reference
+## 📖 Command Reference
 
-### Import & Organize
-
-```
-/paper add <arxiv_id|url|path>            Import a paper
-/paper list                               List all papers
-/paper list --status unread               Filter by read status (unread/reading/read)
-/paper search <keywords>                  Full-text search your library
-/paper web-search <keywords>              Search arXiv
-/paper show <id>                          Show full paper details
-/paper tag <id> <tag1,tag2>               Add tags to a paper
-/paper status <id> <unread|reading|read>  Update read status
-/paper delete <id>                        Remove from library (PDF kept)
-```
-
-### Read & Annotate
+<details>
+<summary><b>📥 Import & Organize</b></summary>
 
 ```
-/paper read <id>                          Summarize a paper (default)
-/paper read <id> --mode deep              Deep read the full paper (Claude structures it)
-/paper read <id> --mode deep --section N  Deep read a specific detected section
-/paper sections <id>                      List detected sections in a PDF
-/paper explain <id> <keyword or phrase>   Find and explain a term or passage in the PDF
-/paper note <id> <text>                   Add a note to a paper
-/paper notes <id>                         List all notes for a paper
-/paper notes --search <keywords>          Search notes across entire library
-/paper export <id>                        Print notes as Markdown
-/paper export <id> -o notes.md            Save notes to a file
+/paper add <arxiv_id|url|path>             Import a paper
+/paper list                                List all papers
+/paper list --status <unread|reading|read> Filter by status
+/paper search <keywords>                   Full-text search your library
+/paper web-search <keywords>               Search arXiv
+/paper show <id>                           Show full paper details
+/paper tag <id> <tag1,tag2>                Add tags
+/paper status <id> <status>                Update read status
+/paper delete <id>                         Remove from library (PDF kept)
 ```
 
-### Discover & Synthesize
+</details>
+
+<details>
+<summary><b>🔍 Read & Annotate</b></summary>
 
 ```
-/paper related <id>                       Find related papers (with reasons)
-/paper graph                              Full library network overview
-/paper graph <topic>                      Topic-filtered network view
-/paper survey                             Overview of entire library
-/paper survey <topic>                     Survey draft focused on a topic
+/paper read <id>                           Summarize (default)
+/paper read <id> --mode deep               Deep read — full paper
+/paper read <id> --mode deep --section N   Deep read — specific section
+/paper sections <id>                       List detected sections
+/paper explain <id> <keyword or phrase>    Find and explain a passage
+/paper note <id> <text>                    Add a note
+/paper notes <id>                          List notes for a paper
+/paper notes --search <keywords>           Search notes across library
+/paper export <id>                         Print notes as Markdown
+/paper export <id> -o notes.md             Save notes to file
 ```
 
-### Config
+</details>
+
+<details>
+<summary><b>🗺️ Discover & Synthesize</b></summary>
 
 ```
-/paper config                             Show library location and stats
-/paper config --set-lib-dir <path>        Move library to a custom directory
+/paper related <id>                        Find related papers (with reasons)
+/paper graph                               Full library network
+/paper graph <topic>                       Topic-filtered network view
+/paper survey                              Overview of entire library
+/paper survey <topic>                      Survey draft on a topic
 ```
+
+</details>
+
+<details>
+<summary><b>⚙️ Config</b></summary>
+
+```
+/paper config                              Show library path and stats
+/paper config --set-lib-dir <path>         Move library to a custom directory
+```
+
+</details>
 
 ---
 
-## How it works
+## 🏗️ Architecture
 
-**Repository layout:**
+**Python handles all I/O** — database reads/writes, PDF parsing, arXiv API calls.
+**Claude handles all reasoning** — summarization, deep reading, survey writing, graph analysis.
+
+No separate API key needed. Everything runs through your existing Claude Code session.
+
+**Repository layout**
 
 ```
 zpaper/
-├── src/zpaper/          # Python package
-│   ├── cli.py           # CLI entry point — all subcommands
-│   ├── library.py       # SQLite database + PDF metadata extraction
-│   ├── search.py        # arXiv API search + PDF download
+├── src/zpaper/
+│   ├── cli.py           # All subcommands
+│   ├── library.py       # SQLite database + metadata extraction
+│   ├── search.py        # arXiv API + PDF download
 │   ├── reader.py        # PDF text extraction + section detection
 │   └── graph.py         # Similarity scoring + topic clustering
 ├── skill/
 │   └── skill.md         # Claude Code skill definition
-├── docs/
-│   ├── PRD.md           # Product requirements document (EN)
-│   └── PRD.zh.md        # Product requirements document (ZH)
 ├── scripts/
 │   └── install.sh       # One-command installer
-├── pyproject.toml       # Package metadata + `paper` CLI entrypoint
-├── README.md
-└── README.zh.md
+└── pyproject.toml
 ```
 
-**Runtime layout (after install):**
+**Runtime layout** (after install)
 
 ```
 ~/.claude/skills/paper/
 └── skill.md             # Tells Claude how to invoke the tools
 
 ~/.scholarmind/
-├── library.db           # SQLite database (papers + notes)
+├── library.db           # Papers + notes (SQLite)
 └── pdfs/                # Downloaded PDFs
 ```
 
-**Architecture:** The Python scripts handle all I/O — database reads/writes, PDF parsing, arXiv API calls. Claude handles all reasoning — summarization, deep reading, survey writing, network analysis. No separate LLM API key needed; it all runs through your existing Claude Code session.
-
-**Similarity algorithm:** Paper-to-paper relatedness is computed locally using TF-IDF-weighted token overlap across abstracts, titles, and keyword fields, with bonus weight for shared user tags. No vector database or embeddings required.
+> **Similarity algorithm:** TF-IDF-weighted token overlap across abstracts, titles, and keywords — with bonus weight for shared user tags. No embeddings or vector database required. Fully local.
 
 ---
 
-## Paper IDs
+## 🔖 Paper ID Format
 
-Each paper gets a stable ID:
+Each paper gets a stable, human-readable ID:
 
-| Format | When assigned |
-|---|---|
-| `arxiv:2301.12345` | Papers imported via arXiv ID or URL |
+| Format | Assigned when |
+|:---|:---|
+| `arxiv:2301.12345` | Imported via arXiv ID or URL |
 | `local:abc123def` | Local PDFs with no detected arXiv ID |
 
-Use these IDs in commands, e.g. `/paper read arxiv:1706.03762`.
+Use these in any command — e.g. `/paper read arxiv:1706.03762`.
 
 ---
 
-## PRD
+## 📄 License
 
-The full product requirements document that drove this implementation is in [`PRD.md`](PRD.md).
-
----
-
-## License
-
-MIT
+[MIT](LICENSE) · Built for [Claude Code](https://claude.ai/code)
