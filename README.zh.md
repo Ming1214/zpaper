@@ -19,6 +19,10 @@
 
 ---
 
+![zpaper showcase](docs/showcase.png)
+
+---
+
 ## ✨ 功能
 
 <table>

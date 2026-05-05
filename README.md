@@ -19,6 +19,10 @@ Import papers · Search your library · Deep-read PDFs · Take notes · Discover
 
 ---
 
+![zpaper showcase](docs/showcase.png)
+
+---
+
 ## ✨ Features
 
 <table>

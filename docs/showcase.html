@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>zpaper — /paper skill showcase</title>
+  <style>
+    :root {
+      --bg:        #0d0f14;
+      --surface:   #141720;
+      --surface2:  #1c2030;
+      --border:    #252a3a;
+      --accent:    #7c6af7;
+      --accent2:   #56cfb2;
+      --accent3:   #f0885a;
+      --accent4:   #e879a0;
+      --text:      #e2e6f3;
+      --muted:     #7a82a0;
+      --code-bg:   #0a0c12;
+      --green:     #4ade80;
+      --yellow:    #fbbf24;
+
+      --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+      --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── Hero ─────────────────────────────────────── */
+    .hero {
+      text-align: center;
+      padding: 80px 24px 60px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 40% at 50% -10%, rgba(124,106,247,.18) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 30% at 80% 60%, rgba(86,207,178,.1) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: rgba(124,106,247,.12);
+      border: 1px solid rgba(124,106,247,.25);
+      border-radius: 100px;
+      padding: 4px 14px;
+      margin-bottom: 28px;
+    }
+
+    .hero h1 {
+      font-size: clamp(36px, 6vw, 64px);
+      font-weight: 800;
+      letter-spacing: -.02em;
+      line-height: 1.1;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 span.grad {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 50%, var(--accent3) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: 18px;
+      color: var(--muted);
+      max-width: 560px;
+      margin: 0 auto 40px;
+    }
+
+    .hero-prompt {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 20px;
+      font-family: var(--font-mono);
+      font-size: 15px;
+      color: var(--text);
+    }
+
+    .hero-prompt .prompt-sym { color: var(--accent2); }
+    .hero-prompt .cmd        { color: var(--accent); }
+
+    /* ── Layout ───────────────────────────────────── */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 100px;
+    }
+
+    /* ── Section heading ──────────────────────────── */
+    .section {
+      margin-top: 72px;
+    }
+
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .section-label .icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .section-label h2 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -.01em;
+    }
+
+    .section-label p {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* ── Card grid ────────────────────────────────── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px 24px;
+      transition: border-color .2s, transform .2s;
+    }
+
+    .card:hover {
+      border-color: rgba(124,106,247,.4);
+      transform: translateY(-2px);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 100px;
+      letter-spacing: .04em;
+    }
+
+    .badge-purple { background: rgba(124,106,247,.15); color: #a99bf9; border: 1px solid rgba(124,106,247,.2); }
+    .badge-teal   { background: rgba(86,207,178,.12);  color: #56cfb2; border: 1px solid rgba(86,207,178,.2); }
+    .badge-orange { background: rgba(240,136,90,.12);  color: #f0885a; border: 1px solid rgba(240,136,90,.2); }
+    .badge-pink   { background: rgba(232,121,160,.12); color: #e879a0; border: 1px solid rgba(232,121,160,.2); }
+
+    /* ── Terminal block ───────────────────────────── */
+    .terminal {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    .terminal-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,.02);
+    }
+
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot-r { background: #ff5f57; }
+    .dot-y { background: #febc2e; }
+    .dot-g { background: #28c840; }
+
+    .terminal-label {
+      font-size: 11px;
+      color: var(--muted);
+      margin-left: 6px;
+      font-family: var(--font-mono);
+    }
+
+    .terminal-body {
+      padding: 16px 18px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .line { display: flex; align-items: flex-start; gap: 10px; }
+    .line + .line { margin-top: 2px; }
+
+    .sym   { color: var(--accent2); user-select: none; flex-shrink: 0; }
+    .cmd   { color: var(--text); }
+    .arg   { color: var(--accent3); }
+    .flag  { color: #a99bf9; }
+    .cmt   { color: var(--muted); font-style: italic; }
+    .out   { color: var(--muted); padding-left: 20px; }
+    .out-g { color: var(--green); padding-left: 20px; }
+    .out-y { color: var(--yellow); padding-left: 20px; }
+    .out-a { color: var(--accent2); padding-left: 20px; }
+
+    /* ── Natural language row ─────────────────────── */
+    .nl-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 10px;
+    }
+
+    .nl-row .bubble {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 12px;
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.5;
+      flex: 1;
+    }
+
+    .nl-row .nl-label {
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+      padding-top: 8px;
+    }
+
+    /* ── Flow diagram ─────────────────────────────── */
+    .flow {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      margin: 4px 0 12px;
+      flex-wrap: wrap;
+    }
+
+    .flow-step {
+      flex: 1;
+      min-width: 100px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 12px;
+      position: relative;
+    }
+
+    .flow-step .step-num {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: .08em;
+      margin-bottom: 4px;
+    }
+
+    .flow-step .step-txt { color: var(--text); line-height: 1.4; }
+
+    .flow-arrow {
+      display: flex;
+      align-items: center;
+      padding: 0 6px;
+      color: var(--muted);
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    /* ── Command table ────────────────────────────── */
+    .cmd-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .cmd-table td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    .cmd-table tr:last-child td { border-bottom: none; }
+
+    .cmd-table .col-cmd {
+      font-family: var(--font-mono);
+      color: var(--accent);
+      white-space: nowrap;
+      width: 1%;
+    }
+
+    .cmd-table .col-desc { color: var(--muted); }
+
+    .cmd-table tr:hover td { background: rgba(255,255,255,.02); }
+
+    /* ── Pill tabs ────────────────────────────────── */
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 14px 0 6px;
+    }
+
+    .pill {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 4px 12px;
+      border-radius: 100px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      background: var(--surface2);
+    }
+
+    /* ── Wide card ────────────────────────────────── */
+    .card-wide {
+      grid-column: 1 / -1;
+    }
+
+    /* ── Divider ──────────────────────────────────── */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 56px 0 0;
+    }
+
+    /* ── Footer ───────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 32px 24px;
+      font-size: 13px;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ── Responsive ───────────────────────────────── */
+    @media (max-width: 640px) {
+      .card-grid { grid-template-columns: 1fr; }
+      .flow { flex-direction: column; }
+      .flow-arrow { transform: rotate(90deg); align-self: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════ HERO ═══════════════ -->
+<div class="hero">
+  <div class="hero-eyebrow">📚 Claude Code Skill</div>
+  <h1>Meet <span class="grad">/paper</span></h1>
+  <p class="hero-sub">
+    A personal research assistant built into Claude Code —
+    import papers, read deeply, take notes, and synthesize surveys
+    without leaving your terminal.
+  </p>
+  <div class="hero-prompt">
+    <span class="prompt-sym">›</span>
+    <span class="cmd">/paper</span>
+    <span style="color:var(--muted)">add 1706.03762</span>
+  </div>
+</div>
+
+<!-- ═══════════════ CONTAINER ═══════════════ -->
+<div class="container">
+
+  <!-- ── § Import & Organize ── -->
+  <div class="section">
+    <div class="section-label">
+      <div class="icon" style="background:rgba(124,106,247,.15);">📥</div>
+      <div>
+        <h2>Import & Organize</h2>
+        <p>Bring papers in from arXiv, URLs, or local PDFs — metadata fetched automatically.</p>
+      </div>
+    </div>
+
+    <div class="card-grid">
+
+      <!-- arXiv import -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Add from arXiv</div>
+          <div class="badge badge-purple">arXiv</div>
+        </div>
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+            <span class="terminal-label">claude-code</span>
+          </div>
+          <div class="terminal-body">
+            <div class="line"><span class="sym">›</span><span class="cmd">/paper add <span class="arg">1706.03762</span></span></div>
+            <div class="line"><span class="out-g">✓ Added Attention Is All You Need (2017)</span></div>
+            <div class="line"><span class="out">  ID: arxiv:1706.03762 · PDF saved</span></div>
+          </div>
+        </div>
+        <div class="nl-row">
+          <span class="nl-label">or say</span>
+          <div class="bubble">💬 "Add the Transformer paper to my library"</div>
+        </div>
+      </div>
+
+      <!-- URL import -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Add from URL</div>
+          <div class="badge badge-teal">URL</div>
+        </div>
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+            <span class="terminal-label">claude-code</span>
+          </div>
+          <div class="terminal-body">
+            <div class="line"><span class="sym">›</span><span class="cmd">/paper add <span class="arg">https://arxiv.org/abs/2310.06825</span></span></div>
+            <div class="line"><span class="out-g">✓ Added Mistral 7B (2023)</span></div>
+            <div class="line"><span class="out">  ID: arxiv:2310.06825 · PDF saved</span></div>
+          </div>
+        </div>
+        <div class="nl-row">
+          <span class="nl-label">or say</span>
+          <div class="bubble">💬 "Add this paper: https://arxiv.org/abs/2310.06825"</div>
+        </div>
+      </div>
+
+      <!-- Local PDF -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Add local PDF</div>
+          <div class="badge badge-orange">Local</div>
+        </div>
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+            <span class="terminal-label">claude-code</span>
+          </div>
+          <div class="terminal-body">
+            <div class="line"><span class="sym">›</span><span class="cmd">/paper add <span class="arg">~/Downloads/my_paper.pdf</span></span></div>
+            <div class="line"><span class="out-g">✓ Added my_paper</span></div>
+            <div class="line"><span class="out">  ID: local:a3f91c2d · metadata extracted</span></div>
+          </div>
+        </div>
+        <div class="nl-row">
+          <span class="nl-label">or say</span>
+          <div class="bubble">💬 "Save this PDF to my library: ~/Downloads/paper.pdf"</div>
+        </div>
+      </div>
+
+      <!-- List & Search -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">List & Search</div>
+          <div class="badge badge-purple">Manage</div>
+        </div>
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+            <span class="terminal-label">claude-code</span>
+          </div>
+          <div class="terminal-body">
+            <div class="line"><span class="sym">›</span><span class="cmd">/paper list <span class="flag">--status unread</span></span></div>
+            <div class="line"><span class="out">○ arxiv:2310.06825  Mistral 7B (2023)</span></div>
+            <div class="line"><span class="out">○ local:a3f91c2d   my_paper</span></div>
+            <div class="line" style="margin-top:8px"><span class="sym">›</span><span class="cmd">/paper search <span class="arg">"attention mechanism"</span></span></div>
+            <div class="line"><span class="out-g">Found 1 paper: arxiv:1706.03762</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tag & Status -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Tag & Status</div>
+          <div class="badge badge-teal">Organize</div>
+        </div>
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+            <span class="terminal-label">claude-code</span>
+          </div>
+          <div class="terminal-body">
+            <div class="line"><span class="sym">›</span><span class="cmd">/paper tag <span class="arg">arxiv:1706.03762</span> <span class="arg">attention,survey</span></span></div>
+            <div class="line"><span class="out-g">✓ Tags added</span></div>
+            <div class="line" style="margin-top:8px"><span class="sym">›</span><span class="cmd">/paper status <span class="arg">arxiv:1706.03762</span> <span class="arg">read</span></span></div>
+            <div class="line"><span class="out-g">✓ Marked as read</span></div>
+          </div>
+        </div>
+        <div class="pill-row">
+          <div class="pill">○ unread</div>
+          <div class="pill">◑ reading</div>
+          <div class="pill" style="color:var(--green);border-color:rgba(74,222,128,.25)">● read</div>
+        </div>
+      </div>
+
+      <!-- arXiv search -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Search arXiv</div>
+          <div class="badge badge-orange">Discover</div>
+        </div>
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+            <span class="terminal-label">claude-code</span>
+          </div>
+          <div class="terminal-body">
+            <div class="line"><span class="sym">›</span><span class="cmd">/paper web-search <span class="arg">"vision language model"</span></span></div>
+            <div class="line"><span class="out">Found 8 papers on arXiv.</span></div>
+            <div class="line"><span class="out">1. LLaVA-1.5 (2023) — Liu et al.</span></div>
+            <div class="line"><span class="out">2. InstructBLIP (2023) — Dai et al.</span></div>
+            <div class="line"><span class="out-a">Want me to import any? Give me a number.</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── § Read & Understand ── -->
+  <hr class="divider" />
+  <div class="section">
+    <div class="section-label">
+      <div class="icon" style="background:rgba(86,207,178,.12);">🔍</div>
+      <div>
+        <h2>Read & Understand</h2>
+        <p>Summarize, deep-read section by section, or ask Claude to explain any term in context.</p>
+      </div>
+    </div>
+
+    <div class="card-grid">
+
+      <!-- Summary mode -->
+      <div class="card card-wide">
+        <div class="card-header">
+          <div class="card-title">Summary Mode</div>
+          <div class="badge badge-teal">Default</div>
+        </div>
+
+        <!-- Flow -->
+        <div class="flow" style="margin-bottom:16px;">
+          <div class="flow-step"><div class="step-num">STEP 1</div><div class="step-txt">Run <code style="color:var(--accent);font-size:11px">/paper read &lt;id&gt;</code></div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="step-num">STEP 2</div><div class="step-txt">Script extracts full PDF text</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="step-num">STEP 3</div><div class="step-txt">Claude generates 5-section structured summary</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="step-num">STEP 4</div><div class="step-txt">Offer to save as note or enter deep read</div></div>
+        </div>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+            <span class="terminal-label">claude-code</span>
+          </div>
+          <div class="terminal-body">
+            <div class="line"><span class="sym">›</span><span class="cmd">/paper read <span class="arg">arxiv:1706.03762</span></span></div>
+            <div class="line" style="margin-top:6px"><span class="out-a">📄 Attention Is All You Need — Summary</span></div>
+            <div class="line"><span class="out"></span></div>
+            <div class="line"><span class="out"><strong style="color:var(--text)">Background</strong>  RNN/LSTM dominated seq-to-seq tasks but were inherently sequential,</span></div>
+            <div class="line"><span class="out">             blocking parallelization and struggling with long-range dependencies.</span></div>
+            <div class="line"><span class="out"><strong style="color:var(--text)">Method</strong>      The Transformer — encoder-decoder built entirely on multi-head self-attention</span></div>
+            <div class="line"><span class="out">             and position-wise FFNs. No recurrence, no convolutions.</span></div>
+            <div class="line"><span class="out"><strong style="color:var(--text)">Results</strong>     28.4 BLEU (EN-DE), 41.8 BLEU (EN-FR) — new SOTA at the time,</span></div>
+            <div class="line"><span class="out">             trained in 3.5 days on 8 GPUs vs. weeks for prior SOTA.</span></div>
+            <div class="line"><span class="out"><strong style="color:var(--text)">Limitations</strong> O(n²) attention complexity; positional encoding is fixed sinusoidal.</span></div>
+            <div class="line"><span class="out"><strong style="color:var(--text)">Prior Work</strong>  Extends Bahdanau et al. attention; replaces ByteNet / ConvS2S.</span></div>
+            <div class="line" style="margin-top:6px"><span class="out-a">Want me to save this as a note, or enter deep read mode?</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Deep read -->
+      <div class="card card-wide">
+        <div class="card-header">
+          <div class="card-title">Deep Read Mode — Section by Section</div>
+          <div class="badge badge-purple">Deep</div>
+        </div>
+
+        <div class="flow" style="margin-bottom:16px;">
+          <div class="flow-step"><div class="step-num">STEP 1</div><div class="step-txt">Run <code style="color:var(--accent);font-size:11px">--mode deep</code></div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="step-num">STEP 2</div><div class="step-txt">Claude walks through each logical section</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="step-num">STEP 3</div><div class="step-txt">One focused question per section to check understanding</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="step-num">STEP 4</div><div class="step-txt">User answers → next section (or add a note)</div></div>
+        </div>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+            <span class="terminal-label">claude-code</span>
+          </div>
+          <div class="terminal-body">
+            <div class="line"><span class="sym">›</span><span class="cmd">/paper read <span class="arg">arxiv:1706.03762</span> <span class="flag">--mode deep</span></span></div>
+            <div class="line" style="margin-top:6px"><span class="out-a">§ 1 · Introduction & Motivation</span></div>
+            <div class="line"><span class="out">RNNs compute hidden state hₜ from hₜ₋₁ — forcing sequential execution.</span></div>
+            <div class="line"><span class="out">This paper proposes eliminating recurrence entirely, relying solely on attention</span></div>
+            <div class="line"><span class="out">to capture global dependencies in O(1) sequential operations.</span></div>
+            <div class="line" style="margin-top:6px"><span class="out-y">🤔 Why didn't researchers remove RNNs earlier? What made it hard?</span></div>
+            <div class="line" style="margin-top:6px"><span class="sym">›</span><span class="cmd cmt">Three reasons: cognitive inertia, ordering without PE, O(n²) cost...</span></div>
+            <div class="line" style="margin-top:6px"><span class="out-a">Great points. Moving to § 2 · Architecture →</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Explain -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Explain a Passage</div>
+          <div class="badge badge-orange">Explain</div>
+        </div>
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+            <span class="terminal-label">claude-code</span>
+          </div>
+          <div class="terminal-body">
+            <div class="line"><span class="sym">›</span><span class="cmd">/paper explain <span class="arg">arxiv:1706.03762</span> <span class="arg">"scaled dot-product"</span></span></div>
+            <div class="line" style="margin-top:6px"><span class="out-g">Found 2 match(es) in the PDF.</span></div>
+            <div class="line"><span class="out">Page 4: "We call our particular attention Scaled</span></div>
+            <div class="line"><span class="out">Dot-Product Attention..."</span></div>
+            <div class="line" style="margin-top:6px"><span class="out-a">This means: dot products between Q and K grow large</span></div>
+            <div class="line"><span class="out-a">for big dₖ, saturating softmax. Dividing by √dₖ</span></div>
+            <div class="line"><span class="out-a">keeps gradients healthy.</span></div>
+          </div>
+        </div>
+        <div class="nl-row">
+          <span class="nl-label">or say</span>
+          <div class="bubble">💬 "I don't understand 'scaled dot-product attention'"</div>
+        </div>
+      </div>
+
+      <!-- Sections -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">List Sections</div>
+          <div class="badge badge-teal">Navigate</div>
+        </div>
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+            <span class="terminal-label">claude-code</span>
+          </div>
+          <div class="terminal-body">
+            <div class="line"><span class="sym">›</span><span class="cmd">/paper sections <span class="arg">arxiv:1706.03762</span></span></div>
+            <div class="line" style="margin-top:6px"><span class="out">0  Introduction</span></div>
+            <div class="line"><span class="out">1  Background</span></div>
+            <div class="line"><span class="out">2  Model Architecture</span></div>
+            <div class="line"><span class="out">3  Why Self-Attention</span></div>
+            <div class="line"><span class="out">4  Training</span></div>
+            <div class="line"><span class="out">5  Results</span></div>
+            <div class="line"><span class="out">6  Conclusion</span></div>
+            <div class="line" style="margin-top:6px"><span class="out-a">Use --section N to jump to any section.</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── § Notes ── -->
+  <hr class="divider" />
+  <div class="section">
+    <div class="section-label">
+      <div class="icon" style="background:rgba(240,136,90,.12);">📝</div>
+      <div>
+        <h2>Notes</h2>
+        <p>Capture insights while reading, search across your whole library, export to Markdown.</p>
+      </div>
+    </div>
+
+    <div class="card-grid">
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Add a Note</div>
+          <div class="badge badge-orange">Write</div>
+        </div>
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+            <span class="terminal-label">claude-code</span>
+          </div>
+          <div class="terminal-body">
+            <div class="line"><span class="sym">›</span><span class="cmd">/paper note <span class="arg">arxiv:1706.03762</span></span></div>
+            <div class="line"><span class="cmd"><span class="arg">  "Key insight: PE uses sinusoids so model</span></span></div>
+            <div class="line"><span class="cmd"><span class="arg">   can extrapolate to longer sequences"</span></span></div>
+            <div class="line" style="margin-top:6px"><span class="out-g">✓ Note saved. You now have 3 notes for this paper.</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Search Notes</div>
+          <div class="badge badge-purple">Search</div>
+        </div>
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+            <span class="terminal-label">claude-code</span>
+          </div>
+          <div class="terminal-body">
+            <div class="line"><span class="sym">›</span><span class="cmd">/paper notes <span class="flag">--search</span> <span class="arg">"positional encoding"</span></span></div>
+            <div class="line" style="margin-top:6px"><span class="out">Found 1 note across 1 paper:</span></div>
+            <div class="line"><span class="out">arxiv:1706.03762 — "Key insight: PE uses</span></div>
+            <div class="line"><span class="out">sinusoids so model can extrapolate..."</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Export Notes</div>
+          <div class="badge badge-teal">Export</div>
+        </div>
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+            <span class="terminal-label">claude-code</span>
+          </div>
+          <div class="terminal-body">
+            <div class="line"><span class="sym">›</span><span class="cmd">/paper export <span class="arg">arxiv:1706.03762</span> <span class="flag">-o</span> <span class="arg">notes.md</span></span></div>
+            <div class="line" style="margin-top:6px"><span class="out-g">✓ Saved to notes.md (3 notes, 1 summary)</span></div>
+          </div>
+        </div>
+        <div class="nl-row">
+          <span class="nl-label">or say</span>
+          <div class="bubble">💬 "Export my notes on the Transformer paper to a file"</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── § Discover & Synthesize ── -->
+  <hr class="divider" />
+  <div class="section">
+    <div class="section-label">
+      <div class="icon" style="background:rgba(232,121,160,.12);">🗺️</div>
+      <div>
+        <h2>Discover & Synthesize</h2>
+        <p>Find related papers, map your literature network, generate a full survey draft.</p>
+      </div>
+    </div>
+
+    <div class="card-grid">
+
+      <!-- Related -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Related Papers</div>
+          <div class="badge badge-pink">Discover</div>
+        </div>
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+            <span class="terminal-label">claude-code</span>
+          </div>
+          <div class="terminal-body">
+            <div class="line"><span class="sym">›</span><span class="cmd">/paper related <span class="arg">arxiv:1706.03762</span></span></div>
+            <div class="line" style="margin-top:6px"><span class="out">Found 3 related papers:</span></div>
+            <div class="line"><span class="out-a">1. BERT (2018) — shared: attention, transformer</span></div>
+            <div class="line"><span class="out-a">   Both build encoder-only stacks on self-attention.</span></div>
+            <div class="line"><span class="out-a">2. GPT-2 (2019) — shared: autoregressive, LM</span></div>
+            <div class="line"><span class="out-a">3. ALiBi (2021) — shared: positional encoding</span></div>
+          </div>
+        </div>
+        <div class="nl-row">
+          <span class="nl-label">or say</span>
+          <div class="bubble">💬 "What papers in my library are similar to this one?"</div>
+        </div>
+      </div>
+
+      <!-- Graph -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Literature Graph</div>
+          <div class="badge badge-purple">Graph</div>
+        </div>
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+            <span class="terminal-label">claude-code</span>
+          </div>
+          <div class="terminal-body">
+            <div class="line"><span class="sym">›</span><span class="cmd">/paper graph <span class="arg">transformer</span></span></div>
+            <div class="line" style="margin-top:6px"><span class="out-a">📊 3 papers · 2 research threads</span></div>
+            <div class="line"><span class="out"></span></div>
+            <div class="line"><span class="out">Thread A · Architectures</span></div>
+            <div class="line"><span class="out">  2017 ── Transformer ──→ 2018 BERT</span></div>
+            <div class="line"><span class="out">Thread B · Position Encoding</span></div>
+            <div class="line"><span class="out">  2017 ── Sinusoidal PE ──→ 2021 ALiBi</span></div>
+            <div class="line" style="margin-top:6px"><span class="out-a">Gap: no papers on efficient attention variants.</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Survey -->
+      <div class="card card-wide">
+        <div class="card-header">
+          <div class="card-title">Generate a Survey Draft</div>
+          <div class="badge badge-pink">Synthesize</div>
+        </div>
+
+        <div class="flow" style="margin-bottom:16px;">
+          <div class="flow-step"><div class="step-num">STEP 1</div><div class="step-txt">Run <code style="color:var(--accent);font-size:11px">/paper survey &lt;topic&gt;</code></div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="step-num">STEP 2</div><div class="step-txt">Script collects all relevant papers + your notes</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="step-num">STEP 3</div><div class="step-txt">Claude writes a structured survey with inline citations</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="step-num">STEP 4</div><div class="step-txt">Expand any section or save draft as a note</div></div>
+        </div>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+            <span class="terminal-label">claude-code</span>
+          </div>
+          <div class="terminal-body">
+            <div class="line"><span class="sym">›</span><span class="cmd">/paper survey <span class="arg">"transformer architecture"</span></span></div>
+            <div class="line" style="margin-top:6px"><span class="out-a">📝 Survey: Transformer Architecture (3 papers · 5 notes)</span></div>
+            <div class="line" style="margin-top:4px"><span class="out"><strong style="color:var(--text)">Introduction</strong></span></div>
+            <div class="line"><span class="out">The Transformer (Vaswani et al., 2017) marked a paradigm shift, replacing</span></div>
+            <div class="line"><span class="out">recurrent architectures with pure self-attention for sequence modeling...</span></div>
+            <div class="line" style="margin-top:4px"><span class="out"><strong style="color:var(--text)">Timeline & Evolution</strong></span></div>
+            <div class="line"><span class="out">2017 · Attention Is All You Need — foundational encoder-decoder design</span></div>
+            <div class="line"><span class="out">2018 · BERT — encoder-only; masked LM pre-training on large corpora</span></div>
+            <div class="line"><span class="out">2021 · ALiBi — replaces sinusoidal PE, enables length extrapolation</span></div>
+            <div class="line" style="margin-top:4px"><span class="out cmt">... [Main Approaches · Comparison · Future Directions] ...</span></div>
+            <div class="line" style="margin-top:6px"><span class="out-a">Want me to expand any section, or save this draft as a note?</span></div>
+          </div>
+        </div>
+
+        <div class="nl-row" style="margin-top:14px">
+          <span class="nl-label">or say</span>
+          <div class="bubble">💬 "Write me a survey on transformer-based language models using my library"</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── § Quick reference table ── -->
+  <hr class="divider" />
+  <div class="section">
+    <div class="section-label">
+      <div class="icon" style="background:rgba(124,106,247,.15);">⌨️</div>
+      <div>
+        <h2>Full Command Reference</h2>
+        <p>Every command at a glance.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <table class="cmd-table">
+        <tr><td class="col-cmd">/paper add &lt;id|url|path&gt;</td><td class="col-desc">Import a paper from arXiv, URL, or local PDF</td></tr>
+        <tr><td class="col-cmd">/paper list [--status]</td><td class="col-desc">List all papers, optionally filtered by read status</td></tr>
+        <tr><td class="col-cmd">/paper search &lt;keywords&gt;</td><td class="col-desc">Full-text search across titles, abstracts, keywords, notes</td></tr>
+        <tr><td class="col-cmd">/paper web-search &lt;keywords&gt;</td><td class="col-desc">Search arXiv and import results</td></tr>
+        <tr><td class="col-cmd">/paper show &lt;id&gt;</td><td class="col-desc">Show full paper details and metadata</td></tr>
+        <tr><td class="col-cmd">/paper tag &lt;id&gt; &lt;tags&gt;</td><td class="col-desc">Add comma-separated tags to a paper</td></tr>
+        <tr><td class="col-cmd">/paper status &lt;id&gt; &lt;status&gt;</td><td class="col-desc">Update read status: unread / reading / read</td></tr>
+        <tr><td class="col-cmd">/paper delete &lt;id&gt;</td><td class="col-desc">Remove from library (PDF file is kept)</td></tr>
+        <tr><td class="col-cmd">/paper read &lt;id&gt;</td><td class="col-desc">Generate structured 5-section summary</td></tr>
+        <tr><td class="col-cmd">/paper read &lt;id&gt; --mode deep</td><td class="col-desc">Section-by-section deep read with comprehension checks</td></tr>
+        <tr><td class="col-cmd">/paper read &lt;id&gt; --mode deep --section N</td><td class="col-desc">Jump to a specific detected section</td></tr>
+        <tr><td class="col-cmd">/paper sections &lt;id&gt;</td><td class="col-desc">List all detected sections in a PDF</td></tr>
+        <tr><td class="col-cmd">/paper explain &lt;id&gt; &lt;phrase&gt;</td><td class="col-desc">Find and explain a term or passage in context</td></tr>
+        <tr><td class="col-cmd">/paper note &lt;id&gt; &lt;text&gt;</td><td class="col-desc">Add a freeform note to a paper</td></tr>
+        <tr><td class="col-cmd">/paper notes &lt;id&gt;</td><td class="col-desc">List all notes for a paper</td></tr>
+        <tr><td class="col-cmd">/paper notes --search &lt;keywords&gt;</td><td class="col-desc">Search notes across the entire library</td></tr>
+        <tr><td class="col-cmd">/paper export &lt;id&gt; [-o file.md]</td><td class="col-desc">Export notes to stdout or a Markdown file</td></tr>
+        <tr><td class="col-cmd">/paper related &lt;id&gt;</td><td class="col-desc">Find related papers with similarity reasons</td></tr>
+        <tr><td class="col-cmd">/paper graph [topic]</td><td class="col-desc">Visualize library network; optionally filter by topic</td></tr>
+        <tr><td class="col-cmd">/paper survey [topic]</td><td class="col-desc">Generate a cited survey draft from library + notes</td></tr>
+        <tr><td class="col-cmd">/paper config [--set-lib-dir]</td><td class="col-desc">Show or change library storage location</td></tr>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<footer>
+  Built with <a href="https://claude.ai/code">Claude Code</a> ·
+  <a href="https://github.com/YOUR_USERNAME/zpaper">zpaper on GitHub</a> ·
+  MIT License
+</footer>
+
+</body>
+</html>
