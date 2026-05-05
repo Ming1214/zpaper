@@ -306,13 +306,32 @@ def cmd_read(args):
     mode = getattr(args, "mode", "summary")
 
     if mode == "deep":
+        section_idx = getattr(args, "section", None)
+        if section_idx is None:
+            # No --section given: output full text for the LLM to deep-read freely
+            text = rdr.get_paper_text_for_summary(file_path)
+            if text.startswith("ERROR"):
+                print(f"Failed to extract PDF text: {text}")
+                return
+            print(f"## DEEP READ MODE — {paper.get('title', pid)}")
+            print(f"Paper ID: {pid}")
+            print(f"Authors: {paper.get('authors', 'Unknown')} ({paper.get('year', '?')})")
+            print()
+            print("--- PAPER TEXT START ---")
+            print(text)
+            print("--- PAPER TEXT END ---")
+            print()
+            print("INSTRUCTION_FOR_CLAUDE: Deep-read the full paper. Walk through it section by section in your own structure, explain each part clearly, highlight key concepts, and ask the user one focused question per section to check understanding. Offer to add notes at any point.")
+            if paper.get("read_status") == "unread":
+                lib.update_paper(pid, {"read_status": "reading"})
+            return
+
         result = rdr.extract_sections(file_path)
         sections = result.get("sections", [])
         if not sections:
             print("Could not detect sections. Falling back to full text.")
             mode = "summary"
         else:
-            section_idx = getattr(args, "section", 0)
             if section_idx >= len(sections):
                 print(f"Section {section_idx} not found. Paper has {len(sections)} sections:")
                 for i, s in enumerate(sections):
@@ -333,7 +352,6 @@ def cmd_read(args):
             print("SECTION LIST: " + " | ".join(f"[{i}] {s['title']}" for i, s in enumerate(sections)))
             print()
             print("INSTRUCTION_FOR_CLAUDE: Analyze this section. Then ask the user one focused question to check understanding. Offer to move to the next section when ready.")
-            # Mark as reading
             if paper.get("read_status") == "unread":
                 lib.update_paper(pid, {"read_status": "reading"})
             return
@@ -369,13 +387,67 @@ def cmd_sections(args):
     if not file_path or not Path(file_path).exists():
         print(f"PDF not found for {args.id}")
         return
-    sections = rdr.list_sections(file_path)
-    if not sections:
-        print("No sections detected.")
+
+    result = rdr.extract_sections(file_path)
+    wl = result.get("sections_whitelist", [])
+    st = result.get("sections_structural", [])
+
+    title = paper.get("title", args.id)
+    print(f"Sections in '{title}':\n")
+
+    print("--- STRATEGY A: Whitelist ---")
+    if wl:
+        for i, s in enumerate(wl):
+            print(f"  [{i}] {s['title']}")
+    else:
+        print("  (no matches)")
+
+    print("\n--- STRATEGY B: Structural ---")
+    if st:
+        for i, s in enumerate(st):
+            print(f"  [{i}] {s['title']}")
+    else:
+        print("  (no matches)")
+
+    print(
+        "\nINSTRUCTION_FOR_CLAUDE: Two section detection strategies are shown above. "
+        "Strategy A uses a keyword whitelist and is precise but may miss non-standard titles. "
+        "Strategy B uses structural heuristics and is broader but may include false positives (e.g. figure captions, page headers). "
+        "Merge and deduplicate them: keep entries that appear in both, prefer Strategy A titles when both match the same position, "
+        "and include Strategy B entries only when they represent a clearly distinct section absent from A. "
+        "Present the final merged section list to the user, then ask which section they want to start with."
+    )
+
+
+def cmd_explain(args):
+    """Search for a keyword/phrase in a paper and output context for the LLM to explain."""
+    paper = lib.get_paper(args.id)
+    if not paper:
+        print(f"Paper not found: {args.id}")
         return
-    print(f"Sections in '{paper.get('title', args.id)}':")
-    for i, title in enumerate(sections):
-        print(f"  [{i}] {title}")
+    file_path = paper.get("file_path")
+    if not file_path or not Path(file_path).exists():
+        print(f"PDF not found for {args.id}")
+        return
+
+    query = " ".join(args.query)
+    matches = rdr.search_text(file_path, query, context_lines=8)
+
+    if not matches:
+        print(f'No matches found for "{query}" in {paper.get("title", args.id)}.')
+        return
+
+    print(f'Found {len(matches)} match(es) for "{query}" in \'{paper.get("title", args.id)}\':\n')
+    for i, m in enumerate(matches):
+        print(f"--- MATCH {i+1} (line {m['line_number']}) ---")
+        print(m["context"])
+        print()
+
+    print(f'INSTRUCTION_FOR_CLAUDE: The user wants to understand "{query}" from this paper. '
+          "Each match above shows the sentence plus surrounding context. "
+          "Explain what this means in plain language, using the context to resolve any ambiguity. "
+          "If there are multiple matches, address each one. "
+          "After explaining, ask if the user wants to add a note or continue reading.")
 
 
 def cmd_note(args):
@@ -725,11 +797,16 @@ def main():
     p_read = sub.add_parser("read", help="Read a paper (summary or deep mode)")
     p_read.add_argument("id", help="Paper ID or search query")
     p_read.add_argument("--mode", choices=["summary", "deep"], default="summary")
-    p_read.add_argument("--section", type=int, default=0, help="Section index for deep mode")
+    p_read.add_argument("--section", type=int, default=None, help="Section index for deep mode")
 
     # sections
     p_sec = sub.add_parser("sections", help="List detected sections in a paper's PDF")
     p_sec.add_argument("id", help="Paper ID")
+
+    # explain
+    p_explain = sub.add_parser("explain", help="Find and explain a keyword or phrase in a paper")
+    p_explain.add_argument("id", help="Paper ID")
+    p_explain.add_argument("query", nargs="+", help="Keyword or phrase to look up")
 
     # note
     p_note = sub.add_parser("note", help="Add a note to a paper")
@@ -784,6 +861,7 @@ Read & Annotate:
   /paper read <id> --mode deep             Section-by-section deep read
   /paper read <id> --mode deep --section N Jump to section N
   /paper sections <id>                     List detected sections
+  /paper explain <id> <keyword or phrase>  Find and explain a term in the paper
   /paper note <id> <text>                  Add a note to a paper
   /paper notes <id>                        List notes for a paper
   /paper notes --search <keywords>         Search notes across all papers
@@ -813,6 +891,7 @@ Config:
         "config": cmd_config,
         "read": cmd_read,
         "sections": cmd_sections,
+        "explain": cmd_explain,
         "note": cmd_note,
         "notes": cmd_notes,
         "export": cmd_export,

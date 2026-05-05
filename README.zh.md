@@ -14,7 +14,8 @@
 | **搜索文献库** | 跨标题、摘要、关键词和笔记的全文检索 |
 | **搜索 arXiv** | 直接查询 arXiv 并一步导入结果 |
 | **总结模式** | Claude 阅读全文，生成结构化摘要：背景 / 方法 / 结果 / 局限性 / 相关工作 |
-| **精读模式** | 逐节引导阅读，每节后 Claude 提问检验理解，记录疑问 |
+| **精读模式** | 全文精读或按节阅读，Claude 逐段解释并提问检验理解 |
+| **解释原文** | 输入看不懂的关键词或句子片段，Claude 在 PDF 中定位匹配段落（支持模糊匹配），结合上下文解释 |
 | **笔记系统** | 为任意论文添加笔记，跨库检索，导出为 Markdown |
 | **相关论文** | 自动发现库中与指定论文相关的文献，并说明关联原因 |
 | **文献网络** | 展示库的时间线与连接图谱（可按主题筛选） |
@@ -119,9 +120,10 @@ bash scripts/install.sh
 
 ```
 /paper read <id>                          总结模式（默认）
-/paper read <id> --mode deep              精读模式（逐节引导）
-/paper read <id> --mode deep --section N  跳到第 N 节
+/paper read <id> --mode deep              精读全文（Claude 自行划分结构）
+/paper read <id> --mode deep --section N  精读指定章节（按检测到的章节编号）
 /paper sections <id>                      列出 PDF 检测到的章节
+/paper explain <id> <关键词或句子片段>    在 PDF 中查找并解释指定词句（支持模糊匹配）
 /paper note <id> <文本>                   为论文添加笔记
 /paper notes <id>                         列出某篇论文的所有笔记
 /paper notes --search <关键词>            跨全库检索笔记

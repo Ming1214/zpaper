@@ -14,7 +14,8 @@ No GUI. No cloud. Everything stored locally.
 | **Search library** | Full-text search across titles, abstracts, keywords, and your own notes. |
 | **Search arXiv** | Query arXiv directly and import results in one step. |
 | **Summary mode** | Claude reads the full paper and produces a structured summary: Background / Method / Results / Limitations / Prior Work. |
-| **Deep read mode** | Walk through the paper section by section. Claude explains each section and asks a question to check your understanding. |
+| **Deep read mode** | Read the full paper or jump to a specific section. Claude explains each part and asks a question to check your understanding. |
+| **Explain a passage** | Paste a keyword or phrase you don't understand — Claude finds all matching passages in the PDF (with fuzzy matching for line-break artifacts) and explains them in context. |
 | **Notes** | Add freeform notes to any paper. Search notes across your entire library. Export to Markdown. |
 | **Related papers** | Automatically find papers in your library that share keywords, topics, or tags — with an explanation of why they're related. |
 | **Graph mode** | See the timeline and connection map of your library (or a topic slice of it). |
@@ -119,9 +120,10 @@ You can also just talk to Claude naturally inside Claude Code:
 
 ```
 /paper read <id>                          Summarize a paper (default)
-/paper read <id> --mode deep              Start section-by-section deep read
-/paper read <id> --mode deep --section N  Jump to section N
+/paper read <id> --mode deep              Deep read the full paper (Claude structures it)
+/paper read <id> --mode deep --section N  Deep read a specific detected section
 /paper sections <id>                      List detected sections in a PDF
+/paper explain <id> <keyword or phrase>   Find and explain a term or passage in the PDF
 /paper note <id> <text>                   Add a note to a paper
 /paper notes <id>                         List all notes for a paper
 /paper notes --search <keywords>          Search notes across entire library

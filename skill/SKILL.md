@@ -48,6 +48,7 @@ Never reconstruct logic yourself — always delegate to the script.
 | "deep read paper X" / "精读" | `paper read <id> --mode deep` |
 | "next section" (during deep read) | `paper read <id> --mode deep --section <N>` |
 | "what sections does paper X have" | `paper sections <id>` |
+| "explain this phrase" / "I don't understand X" | `paper explain <id> <keyword or phrase>` |
 
 ### Notes
 
@@ -90,6 +91,19 @@ Never reconstruct logic yourself — always delegate to the script.
 
 ### Deep Read Mode
 
+Two sub-modes depending on whether `--section` is provided:
+
+**Full-text deep read** (`paper read <id> --mode deep`, no `--section`):
+1. Run: `paper read <id> --mode deep`
+2. The script outputs the full paper text between `--- PAPER TEXT START ---` and `--- PAPER TEXT END ---`
+3. **You (Claude) must** walk through the paper in your own structure:
+   - Divide the text into logical sections yourself
+   - Explain each part clearly, highlight key concepts
+   - Ask **one focused question** per section to check understanding
+   - Wait for user's response before moving on
+4. After all sections, offer a final synthesis and suggest: `paper status <id> read`
+
+**Section-by-section deep read** (`paper read <id> --mode deep --section N`):
 1. First, show available sections: `paper sections <id>`
 2. Start with section 0: `paper read <id> --mode deep --section 0`
 3. The script outputs one section's text between `--- SECTION TEXT START ---` and `--- SECTION TEXT END ---`
@@ -102,6 +116,8 @@ Never reconstruct logic yourself — always delegate to the script.
 6. After each section, offer: *"Ready for the next section? Or want to add a note about something here?"*
 7. If user wants to note something: `paper note <id> "<their insight>" --type insight`
 8. When all sections are done, offer a final synthesis and suggest marking as read: `paper status <id> read`
+
+**When to use which**: prefer full-text mode when section detection looks unreliable (e.g. `paper sections` returns garbled titles). Use section mode when the paper has clean detected sections and the user wants to jump to a specific one.
 
 ---
 
@@ -120,6 +136,9 @@ Always summarize the result naturally. Don't dump raw script output verbatim.
 
 **After note saved:**
 > Note saved for *[paper title]*. You now have N notes for this paper.
+
+**After explain:**
+> Found 2 match(es) for "scaled dot-product attention". Here's what it means: [explanation using the surrounding context]. Want to add a note about this, or keep reading?
 
 **After related:**
 > Found 3 related papers. Closest match: *[title]* (2023) — shares keywords on multi-head attention and positional encoding. Want me to add it to your library?
@@ -185,7 +204,8 @@ Papers have IDs like `arxiv:1706.03762` or `local:abc123`. When the user refers 
 - **PDF not found**: Tell user metadata is saved, provide the source URL, offer to proceed once they download manually
 - **Metadata extraction gaps**: List missing fields, suggest `/paper show <id>` to review
 - **Search returns nothing**: Suggest `/paper web-search` as an alternative
-- **Section detection fails**: Fall back to summary mode, explain why
+- **Section detection fails**: Fall back to full-text deep read (`paper read <id> --mode deep` without `--section`), explain why
+- **explain returns no matches**: Tell user no exact or fuzzy match was found, ask them to try a shorter or differently worded fragment
 
 ---
 
