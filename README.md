@@ -109,8 +109,11 @@ The installer does three things:
 Or just talk to Claude naturally:
 
 > 💬 *"Add the BERT paper to my library"*
+
 > 💬 *"Summarize GPT-3 for me"*
+
 > 💬 *"What papers do I have on diffusion models?"*
+
 > 💬 *"Write a survey on vision-language pre-training"*
 
 ---
