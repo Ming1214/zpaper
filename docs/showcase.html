@@ -786,7 +786,7 @@
       <div class="icon" style="background:rgba(232,121,160,.12);">🗺️</div>
       <div>
         <h2>Discover & Synthesize</h2>
-        <p>Find related papers, map your literature network, generate a full survey draft.</p>
+        <p>Find related papers, compare them side by side, map your literature network, generate a full survey draft.</p>
       </div>
     </div>
 
@@ -839,6 +839,50 @@
             <div class="line"><span class="out">  2017 ── Sinusoidal PE ──→ 2021 ALiBi</span></div>
             <div class="line" style="margin-top:6px"><span class="out-a">Gap: no papers on efficient attention variants.</span></div>
           </div>
+        </div>
+      </div>
+
+      <!-- Compare -->
+      <div class="card card-wide">
+        <div class="card-header">
+          <div class="card-title">Compare Papers Side by Side</div>
+          <div class="badge badge-teal">Compare</div>
+        </div>
+
+        <div class="flow" style="margin-bottom:16px;">
+          <div class="flow-step"><div class="step-num">STEP 1</div><div class="step-txt">Run <code style="color:var(--accent);font-size:11px">/paper compare &lt;id1&gt; &lt;id2&gt;</code></div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="step-num">STEP 2</div><div class="step-txt">Script outputs metadata (+ full text with <code style="color:var(--accent);font-size:11px">--mode full</code>) for each paper</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="step-num">STEP 3</div><div class="step-txt">Claude writes a 6-section structured comparison</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="step-num">STEP 4</div><div class="step-txt">Offer to save key insights as notes on individual papers</div></div>
+        </div>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+            <span class="terminal-label">claude-code</span>
+          </div>
+          <div class="terminal-body">
+            <div class="line"><span class="sym">›</span><span class="cmd">/paper compare <span class="arg">arxiv:2602.12125</span> <span class="arg">arxiv:2604.13016</span></span></div>
+            <div class="line" style="margin-top:6px"><span class="out-a">⚖️  Comparing 2 papers · Similarity: 0.42</span></div>
+            <div class="line" style="margin-top:4px"><span class="out"><strong style="color:var(--text)">Overview</strong></span></div>
+            <div class="line"><span class="out">  ExOPD (2026)           — reward extrapolation (λ>1) to push student beyond teacher</span></div>
+            <div class="line"><span class="out">  Rethinking OPD (2026)  — conditions for OPD success: thinking-pattern overlap + new knowledge</span></div>
+            <div class="line" style="margin-top:4px"><span class="out"><strong style="color:var(--text)">Core Method</strong></span></div>
+            <div class="line"><span class="out">  [Paper 1] Scales implicit reward by λ; uses teacher pre-RL model as πref for reward correction.</span></div>
+            <div class="line"><span class="out">  [Paper 2] Measures initial overlap ratio; proposes cold-start SFT + teacher-aligned prompts.</span></div>
+            <div class="line" style="margin-top:4px"><span class="out"><strong style="color:var(--text)">Synthesis</strong></span></div>
+            <div class="line"><span class="out">  Complementary: Rethinking OPD tells you when OPD will work; ExOPD tells you how</span></div>
+            <div class="line"><span class="out">  to push further once it does. Use both as a decision + optimization framework.</span></div>
+            <div class="line" style="margin-top:6px"><span class="out-a">Want me to save key insights as notes on these papers?</span></div>
+          </div>
+        </div>
+
+        <div class="nl-row" style="margin-top:14px">
+          <span class="nl-label">or say</span>
+          <div class="bubble">💬 "Compare ExOPD and Rethinking OPD on how they handle the capacity gap"</div>
         </div>
       </div>
 
@@ -921,6 +965,8 @@
         <tr><td class="col-cmd">/paper related &lt;id&gt;</td><td class="col-desc">Find related papers with similarity reasons</td></tr>
         <tr><td class="col-cmd">/paper graph [topic]</td><td class="col-desc">Visualize library network; optionally filter by topic</td></tr>
         <tr><td class="col-cmd">/paper survey [topic]</td><td class="col-desc">Generate a cited survey draft from library + notes</td></tr>
+        <tr><td class="col-cmd">/paper compare &lt;id1&gt; &lt;id2&gt; [...]</td><td class="col-desc">Compare 2–5 papers: overview table, method, results, synthesis</td></tr>
+        <tr><td class="col-cmd">/paper compare &lt;ids&gt; --mode full</td><td class="col-desc">Same comparison with full PDF text included</td></tr>
         <tr><td class="col-cmd">/paper config [--set-lib-dir]</td><td class="col-desc">Show or change library storage location</td></tr>
       </table>
     </div>

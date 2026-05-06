@@ -77,6 +77,9 @@ Never reconstruct logic yourself — always delegate to the script.
 | "show connections for topic X" | `paper graph X` |
 | "write a survey on X" / "综述" | `paper survey X` |
 | "give me an overview of my library" | `paper survey` |
+| "compare paper A and paper B" | `paper compare <id1> <id2>` |
+| "compare these papers A B C" | `paper compare <id1> <id2> <id3>` |
+| "compare with full text" / "精读对比" | `paper compare <ids...> --mode full` |
 
 ---
 
@@ -198,6 +201,22 @@ Always summarize the result naturally. Don't dump raw script output verbatim.
 6. After the draft: *"Want me to expand any section? I can also save this draft as a note."*
 7. To save: `paper note <any_relevant_id> "<draft>" --type summary`
 
+### Compare Mode (`compare`)
+
+1. Run: `paper compare <id1> <id2> [id3 ...]` (2–5 papers)
+   - Add `--mode full` to include full PDF text (requires PDFs to be downloaded)
+   - Default (`--mode abstract`) uses only metadata — works without PDFs, faster
+2. Script outputs metadata (and optionally full text) for each paper, a pairwise similarity score for 2-paper comparisons, and ends with `INSTRUCTION_FOR_CLAUDE`
+3. **You (Claude) must write a structured comparative analysis**:
+   - **Overview Table** — one row per paper: title, year, core contribution (1 sentence)
+   - **Background & Motivation** — what each paper addresses, how they differ
+   - **Core Method** — technical approach comparison; similarities and differences
+   - **Key Results** — main findings per paper; are they complementary or contradictory?
+   - **Limitations & Open Questions** — what each paper leaves unsolved
+   - **Synthesis** — how these papers relate; which insight is most important; what to read next
+4. Use inline paper references: *[Paper 1: ExOPD]*, *[Paper 2: Rethinking OPD]* — not raw arxiv IDs
+5. After the comparison, offer: *"Want me to save key insights as notes on individual papers?"*
+
 ---
 
 ## Resolving Paper IDs
@@ -216,6 +235,7 @@ Papers have IDs like `arxiv:1706.03762` or `local:abc123`. When the user refers 
 - **Section detection fails**: Fall back to full-text deep read (`paper read <id> --mode deep` without `--section`), explain why
 - **explain returns no matches**: Tell user no exact or fuzzy match was found, ask them to try a shorter or differently worded fragment
 - **Batch add errors**: Individual failures don't abort the batch — report the summary at the end and list failed sources so the user can retry them
+- **compare with missing PDF**: `--mode full` falls back to metadata-only for that paper and continues — tell the user which paper was affected
 
 ---
 

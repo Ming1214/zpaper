@@ -41,6 +41,7 @@
 - 直接搜索 arXiv，一步导入结果
 - 自动发现库中相关论文，并说明关联原因
 - 将文献库可视化为时间线与连接图谱
+- **多论文对比阅读（2–5 篇）** — 跨方法、结果、局限性的结构化对比分析
 
 </td>
 </tr>
@@ -108,6 +109,10 @@ bash scripts/install.sh
 
 # ── 综述 ────────────────────────────────────────────
 /paper survey "transformer language model"
+
+# ── 对比 ────────────────────────────────────────────
+/paper compare arxiv:1706.03762 arxiv:1810.04805             # 两篇论文对比
+/paper compare arxiv:1706.03762 arxiv:1810.04805 --mode full # 包含全文
 ```
 
 也可以直接用自然语言和 Claude 对话：
@@ -171,6 +176,8 @@ bash scripts/install.sh
 /paper graph <主题>                        按主题筛选的网络视图
 /paper survey                              全库综述概览
 /paper survey <主题>                       生成指定主题的综述草稿
+/paper compare <id1> <id2> [...]           多论文对比（2–5 篇）
+/paper compare <ids...> --mode full        包含 PDF 全文的深度对比
 ```
 
 </details>

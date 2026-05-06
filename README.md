@@ -41,6 +41,7 @@ Import papers · Search your library · Deep-read PDFs · Take notes · Discover
 - Search arXiv directly and import results in one step
 - Automatically surface related papers with reasons
 - Visualize your library as a timeline and connection graph
+- **Compare 2–5 papers side by side** — structured analysis across method, results, and limitations
 
 </td>
 </tr>
@@ -109,6 +110,10 @@ The installer does three things:
 
 # ── Synthesize ──────────────────────────────────────
 /paper survey "transformer language model"
+
+# ── Compare ─────────────────────────────────────────
+/paper compare arxiv:1706.03762 arxiv:1810.04805              # compare two papers
+/paper compare arxiv:1706.03762 arxiv:1810.04805 --mode full  # include full PDF text
 ```
 
 Or just talk to Claude naturally:
@@ -172,6 +177,8 @@ Or just talk to Claude naturally:
 /paper graph <topic>                       Topic-filtered network view
 /paper survey                              Overview of entire library
 /paper survey <topic>                      Survey draft on a topic
+/paper compare <id1> <id2> [...]           Compare 2–5 papers side by side
+/paper compare <ids...> --mode full        Compare with full PDF text included
 ```
 
 </details>

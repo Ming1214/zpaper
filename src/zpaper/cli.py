@@ -868,6 +868,84 @@ def cmd_survey(args):
     print(instruction)
 
 
+def cmd_compare(args):
+    """
+    Multi-paper comparison mode. Feeds metadata (and optionally full text) for
+    each paper to Claude with a structured comparison prompt.
+    """
+    ids = args.ids
+    if len(ids) < 2:
+        print("Error: compare requires at least 2 paper IDs.")
+        sys.exit(1)
+    if len(ids) > 5:
+        print(f"Warning: capped at 5 papers (ignoring {ids[5:]})")
+        ids = ids[:5]
+
+    papers = []
+    for pid in ids:
+        p = lib.get_paper(pid)
+        if not p:
+            print(f"Error: paper '{pid}' not found in library.")
+            sys.exit(1)
+        papers.append(p)
+
+    n = len(papers)
+    print(f"## COMPARE MODE — {n} papers")
+    print(f"Mode: {args.mode}")
+
+    if n == 2:
+        df = gph._build_df(papers)
+        score = gph.compute_similarity(papers[0], papers[1], df, n)
+        reasons = gph._explain_similarity(papers[0], papers[1])
+        print(f"Similarity score: {score:.2f}")
+        if reasons:
+            print(f"Shared signals: {' · '.join(reasons)}")
+
+    print()
+
+    for i, p in enumerate(papers, 1):
+        pid = p["id"]
+        print(f"--- PAPER {i} [{pid}] METADATA START ---")
+        print(f"Title: {p.get('title', '(unknown)')}")
+        print(f"Authors: {p.get('authors', '')}")
+        print(f"Year: {p.get('year', '')}")
+        print(f"Abstract: {p.get('abstract', '')}")
+        print(f"Keywords: {p.get('keywords', '')}")
+        print(f"Tags: {p.get('tags', '[]')}")
+        notes = lib.list_notes(pid)
+        if notes:
+            print("Notes:")
+            for nt in notes:
+                print(f"  [{nt['note_type']}] {nt['content'][:200]}")
+        print(f"--- PAPER {i} [{pid}] METADATA END ---")
+        print()
+
+        if args.mode == "full":
+            fp = p.get("file_path")
+            if fp and os.path.exists(fp):
+                text = rdr.get_paper_text_for_summary(fp)
+                print(f"--- PAPER {i} [{pid}] TEXT START ---")
+                print(text)
+                print(f"--- PAPER {i} [{pid}] TEXT END ---")
+            else:
+                print(f"[Paper {i}: PDF not available — using metadata only]")
+            print()
+
+    titles = [p.get("title", p["id"]) for p in papers]
+    refs = " | ".join(f"[Paper {i+1}: {t[:40]}]" for i, t in enumerate(titles))
+    print(
+        f"INSTRUCTION_FOR_CLAUDE: You are given {n} research papers above ({refs}). "
+        "Produce a structured comparative analysis with these sections:\n"
+        "1. **Overview Table** — one row per paper: title, year, core contribution (1 sentence)\n"
+        "2. **Background & Motivation** — what problem each addresses, and how they differ\n"
+        "3. **Core Method** — key technical approach of each; compare similarities and differences\n"
+        "4. **Key Results** — main findings per paper; complementary or contradictory?\n"
+        "5. **Limitations & Open Questions** — what each paper leaves unsolved\n"
+        "6. **Synthesis** — how these papers relate; which insight is most important; what to read next\n"
+        f"Use inline references like [Paper 1] or [Paper 2]. Prioritize insight over exhaustive listing."
+    )
+
+
 def cmd_config(args):
     """Configure ScholarMind settings."""
     if args.set_lib_dir:
@@ -989,6 +1067,16 @@ def main():
     p_survey = sub.add_parser("survey", help="Generate a survey draft from your library")
     p_survey.add_argument("topic", nargs="*", help="Topic/keywords to focus the survey")
 
+    # compare
+    p_compare = sub.add_parser("compare", help="Compare multiple papers side by side")
+    p_compare.add_argument("ids", nargs="+", help="Paper IDs to compare (2–5)")
+    p_compare.add_argument(
+        "--mode",
+        choices=["abstract", "full"],
+        default="abstract",
+        help="abstract=metadata only (default); full=include PDF text",
+    )
+
     # help fallback
     if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help", "help"):
         print("""ScholarMind — literature management in Claude Code
@@ -1020,6 +1108,8 @@ Discover & Synthesize:
   /paper related <id>                      Find related papers
   /paper graph [topic]                     Literature network overview
   /paper survey [topic]                    Generate a survey draft
+  /paper compare <id1> <id2> [...]         Compare 2–5 papers side by side
+  /paper compare <ids...> --mode full      Compare with full PDF text
 
 Config:
   /paper config                            Show library settings
@@ -1050,6 +1140,7 @@ Config:
         "related": cmd_related,
         "graph": cmd_graph,
         "survey": cmd_survey,
+        "compare": cmd_compare,
     }
 
     fn = dispatch.get(args.cmd)
