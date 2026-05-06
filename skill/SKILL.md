@@ -31,11 +31,16 @@ Never reconstruct logic yourself — always delegate to the script.
 |-----------|---------------|
 | "add arxiv 2301.12345" | `paper add 2301.12345` |
 | "add this PDF ~/Downloads/paper.pdf" | `paper add ~/Downloads/paper.pdf` |
+| "add these three papers: A, B, C" | `paper add <id1> <id2> <id3>` |
 | "search my library for transformers" | `paper search transformers` |
 | "search arXiv for diffusion models" | `paper web-search diffusion models` |
 | "list my papers" | `paper list` |
+| "show all papers" | `paper list --all` |
 | "show unread papers" | `paper list --status unread` |
 | "show details of paper X" | `paper show <id>` |
+| "edit the title of paper X" | `paper edit <id> title="New Title"` |
+| "update authors and year of paper X" | `paper edit <id> authors="A, B" year=2024` |
+| "remove tag from paper X" | `paper edit <id> tags="tag1,tag2"` (full replacement) |
 | "tag paper X with survey" | `paper tag <id> survey` |
 | "mark paper X as read" | `paper status <id> read` |
 | "delete paper X" | `paper delete <id>` |
@@ -58,6 +63,7 @@ Never reconstruct logic yourself — always delegate to the script.
 | "save this as a note" (after summary) | `paper note <id> <summary_text> --type summary` |
 | "show notes for paper X" | `paper notes <id>` |
 | "search my notes for attention" | `paper notes --search attention` |
+| "delete note #5" | `paper note-delete 5` |
 | "export notes for paper X" | `paper export <id>` |
 | "export notes to file.md" | `paper export <id> -o ~/notes/paper.md` |
 
@@ -125,8 +131,11 @@ Two sub-modes depending on whether `--section` is provided:
 
 Always summarize the result naturally. Don't dump raw script output verbatim.
 
-**After add:**
+**After add (single):**
 > Added **Attention Is All You Need** (2017) to your library as `arxiv:1706.03762`. PDF saved. Want me to summarize it?
+
+**After add (batch):**
+> Imported 3 of 4 papers: added Attention Is All You Need, Mistral 7B, and GPT-4 Technical Report. 1 duplicate skipped (BERT was already in your library). Want me to start with any of them?
 
 **After summary:**
 > Here's my summary of *Attention Is All You Need*: [structured summary]. Want me to save this as a note, or go deeper on any section?
@@ -202,10 +211,11 @@ Papers have IDs like `arxiv:1706.03762` or `local:abc123`. When the user refers 
 ## Error Handling
 
 - **PDF not found**: Tell user metadata is saved, provide the source URL, offer to proceed once they download manually
-- **Metadata extraction gaps**: List missing fields, suggest `/paper show <id>` to review
+- **Metadata extraction gaps**: List missing fields, suggest `paper edit <id> title='...' authors='...'` to fill them in
 - **Search returns nothing**: Suggest `/paper web-search` as an alternative
 - **Section detection fails**: Fall back to full-text deep read (`paper read <id> --mode deep` without `--section`), explain why
 - **explain returns no matches**: Tell user no exact or fuzzy match was found, ask them to try a shorter or differently worded fragment
+- **Batch add errors**: Individual failures don't abort the batch — report the summary at the end and list failed sources so the user can retry them
 
 ---
 

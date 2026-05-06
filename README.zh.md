@@ -92,6 +92,7 @@ bash scripts/install.sh
 /paper add 1706.03762
 /paper add https://arxiv.org/abs/2310.06825
 /paper add ~/Downloads/my_paper.pdf
+/paper add 1706.03762 2310.06825 2301.12345   # 批量导入
 
 # ── 搜索 ────────────────────────────────────────────
 /paper search "attention mechanism"
@@ -127,13 +128,15 @@ bash scripts/install.sh
 <summary><b>📥 导入与管理</b></summary>
 
 ```
-/paper add <arxiv_id|url|path>             导入论文
-/paper list                                列出所有论文
+/paper add <id|url|path> [...]             导入论文（支持批量，空格分隔多个来源）
+/paper list                                列出论文（最近 20 篇）
+/paper list --all                          列出所有论文
 /paper list --status <unread|reading|read> 按状态筛选
 /paper search <关键词>                     全文检索本地文献库
 /paper web-search <关键词>                 搜索 arXiv
 /paper show <id>                           查看论文详情
-/paper tag <id> <标签1,标签2>              为论文添加标签
+/paper edit <id> field=value ...           编辑元数据字段
+/paper tag <id> <标签1,标签2>              追加标签
 /paper status <id> <状态>                  更新阅读状态
 /paper delete <id>                         从库中删除（PDF 文件保留）
 ```
@@ -150,8 +153,9 @@ bash scripts/install.sh
 /paper sections <id>                       列出检测到的章节
 /paper explain <id> <关键词或句子片段>     在 PDF 中查找并解释
 /paper note <id> <文本>                    为论文添加笔记
-/paper notes <id>                          列出某篇论文的所有笔记
+/paper notes <id>                          列出某篇论文的所有笔记（显示笔记 ID）
 /paper notes --search <关键词>             跨全库检索笔记
+/paper note-delete <note_id>               按 ID 删除笔记
 /paper export <id>                         输出笔记为 Markdown
 /paper export <id> -o 笔记.md              保存笔记到文件
 ```

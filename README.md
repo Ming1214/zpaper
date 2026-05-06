@@ -93,6 +93,7 @@ The installer does three things:
 /paper add 1706.03762
 /paper add https://arxiv.org/abs/2310.06825
 /paper add ~/Downloads/my_paper.pdf
+/paper add 1706.03762 2310.06825 2301.12345   # batch import
 
 # ── Search ──────────────────────────────────────────
 /paper search "attention mechanism"
@@ -128,13 +129,15 @@ Or just talk to Claude naturally:
 <summary><b>📥 Import & Organize</b></summary>
 
 ```
-/paper add <arxiv_id|url|path>             Import a paper
-/paper list                                List all papers
+/paper add <id|url|path> [...]             Import one or more papers (batch supported)
+/paper list                                List papers (last 20)
+/paper list --all                          List all papers
 /paper list --status <unread|reading|read> Filter by status
 /paper search <keywords>                   Full-text search your library
 /paper web-search <keywords>               Search arXiv
 /paper show <id>                           Show full paper details
-/paper tag <id> <tag1,tag2>                Add tags
+/paper edit <id> field=value ...           Edit metadata fields
+/paper tag <id> <tag1,tag2>                Append tags
 /paper status <id> <status>                Update read status
 /paper delete <id>                         Remove from library (PDF kept)
 ```
@@ -151,8 +154,9 @@ Or just talk to Claude naturally:
 /paper sections <id>                       List detected sections
 /paper explain <id> <keyword or phrase>    Find and explain a passage
 /paper note <id> <text>                    Add a note
-/paper notes <id>                          List notes for a paper
+/paper notes <id>                          List notes for a paper (shows note IDs)
 /paper notes --search <keywords>           Search notes across library
+/paper note-delete <note_id>               Delete a note by ID
 /paper export <id>                         Print notes as Markdown
 /paper export <id> -o notes.md             Save notes to file
 ```

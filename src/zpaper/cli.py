@@ -16,64 +16,54 @@ from zpaper import reader as rdr
 from zpaper import graph as gph
 
 
-def cmd_add(args):
-    """Add a paper from a local path or arXiv ID / URL."""
-    source = args.source
+import re as _re
 
-    if not source:
-        print("Usage: /paper add <path/to/file.pdf | arxiv_id | arxiv_url>")
-        return
 
+def _add_one(source: str, tags: list, download: bool) -> dict:
+    """Import a single paper. Returns a status dict with keys: status, paper, source, error."""
     metadata = {}
     file_path = None
 
     # --- Case 1: arXiv ID or URL ---
     arxiv_id = None
-    arxiv_match = None
-
-    # Match patterns: 2301.12345, arxiv:2301.12345, https://arxiv.org/abs/2301.12345
     for pattern in [
         r"arxiv\.org/abs/(\d{4}\.\d{4,5}(?:v\d+)?)",
         r"(?:arxiv:|arXiv:)(\d{4}\.\d{4,5}(?:v\d+)?)",
         r"^(\d{4}\.\d{4,5}(?:v\d+)?)$",
     ]:
-        m = __import__("re").search(pattern, source, __import__("re").IGNORECASE)
+        m = _re.search(pattern, source, _re.IGNORECASE)
         if m:
             arxiv_id = m.group(1).split("v")[0]
             break
 
     if arxiv_id:
-        print(f"Fetching metadata from arXiv for {arxiv_id}...")
+        print(f"  Fetching arXiv metadata for {arxiv_id}...")
         metadata = lib.fetch_arxiv_metadata(arxiv_id)
         if not metadata:
-            print(f"Could not fetch arXiv metadata for {arxiv_id}. Check the ID and your internet connection.")
-            return
+            return {"status": "error", "source": source,
+                    "error": f"Could not fetch arXiv metadata for {arxiv_id}"}
 
-        print(f"Title: {metadata.get('title', 'Unknown')}")
-        print(f"Authors: {metadata.get('authors', 'Unknown')}")
-        print(f"Year: {metadata.get('year', 'Unknown')}")
+        print(f"  Title: {metadata.get('title', 'Unknown')}")
 
-        download = args.download if hasattr(args, "download") else True
         if download:
-            print("Downloading PDF...")
+            print(f"  Downloading PDF...")
             pdf_dir = lib.get_pdf_dir()
             file_path = srch.download_arxiv_pdf(arxiv_id, pdf_dir, title=metadata.get("title"))
             if file_path:
-                print(f"PDF saved: {file_path}")
+                print(f"  PDF saved: {file_path}")
             else:
-                print("PDF download failed (may be access-restricted). Saving metadata only.")
+                print(f"  PDF download failed. Saving metadata only.")
 
     # --- Case 2: local file ---
     elif Path(source).expanduser().exists():
         file_path = str(Path(source).expanduser().resolve())
-        print(f"Extracting metadata from {file_path}...")
+        print(f"  Extracting metadata from {Path(file_path).name}...")
         extracted = lib.extract_pdf_metadata(file_path)
 
         if extracted.get("arxiv_id"):
-            print(f"Detected arXiv ID: {extracted['arxiv_id']}, fetching full metadata...")
+            print(f"  Detected arXiv ID: {extracted['arxiv_id']}, fetching full metadata...")
             arxiv_meta = lib.fetch_arxiv_metadata(extracted["arxiv_id"])
             if arxiv_meta:
-                # Prefer arXiv metadata, fill gaps with extracted
                 for k, v in extracted.items():
                     if k not in arxiv_meta or not arxiv_meta[k]:
                         arxiv_meta[k] = v
@@ -84,31 +74,73 @@ def cmd_add(args):
             metadata = extracted
 
         if extracted.get("missing_fields"):
-            print(f"\nCould not auto-extract: {', '.join(extracted['missing_fields'])}")
-            print("You can fill them in with: /paper edit <id> title='...' authors='...'")
+            print(f"  Missing fields: {', '.join(extracted['missing_fields'])}")
+            print(f"  Fix with: paper edit <id> title='...' authors='...'")
 
     else:
-        print(f"Not a valid arXiv ID/URL or local file path: {source}")
-        print("Examples:")
-        print("  /paper add 2301.12345")
-        print("  /paper add https://arxiv.org/abs/2301.12345")
-        print("  /paper add /path/to/paper.pdf")
-        return
-
-    # Parse tags
-    tags = args.tags.split(",") if getattr(args, "tags", None) else []
-    tags = [t.strip() for t in tags if t.strip()]
+        return {"status": "error", "source": source,
+                "error": f"Not a valid arXiv ID/URL or local file path: {source!r}"}
 
     result = lib.add_paper(file_path=file_path, metadata=metadata, tags=tags)
+    result["source"] = source
+    return result
 
-    if result["status"] == "duplicate":
+
+def cmd_add(args):
+    """Add one or more papers from arXiv IDs, URLs, or local PDF paths."""
+    sources = args.sources
+    if not sources:
+        print("Usage: /paper add <arxiv_id|url|path> [arxiv_id|url|path ...]")
+        return
+
+    tags = [t.strip() for t in (args.tags or "").split(",") if t.strip()]
+    download = getattr(args, "download", True)
+
+    # Single-source: keep original concise output style
+    if len(sources) == 1:
+        source = sources[0]
+        result = _add_one(source, tags, download)
+        if result["status"] == "error":
+            print(f"Error: {result['error']}")
+            print("Examples:")
+            print("  paper add 2301.12345")
+            print("  paper add https://arxiv.org/abs/2301.12345")
+            print("  paper add /path/to/paper.pdf")
+            return
         p = result["paper"]
-        print(f"\nAlready in library: [{p['id']}] {p.get('title', 'Untitled')}")
-    else:
-        p = result["paper"]
-        print(f"\nAdded: [{p['id']}] {p.get('title', 'Untitled')}")
-        if p.get("year"):
-            print(f"Year: {p['year']} | Authors: {p.get('authors', 'Unknown')}")
+        if result["status"] == "duplicate":
+            print(f"\nAlready in library: [{p['id']}] {p.get('title', 'Untitled')}")
+        else:
+            print(f"\nAdded: [{p['id']}] {p.get('title', 'Untitled')}")
+            if p.get("year"):
+                print(f"Year: {p['year']} | Authors: {p.get('authors', 'Unknown')}")
+        return
+
+    # Batch mode: process each source and print a summary table
+    print(f"Batch import: {len(sources)} source(s)\n")
+    added, duplicates, errors = [], [], []
+
+    for i, source in enumerate(sources, 1):
+        print(f"[{i}/{len(sources)}] {source}")
+        result = _add_one(source, tags, download)
+        if result["status"] == "added":
+            added.append(result["paper"])
+            print(f"  ✓ Added: [{result['paper']['id']}]")
+        elif result["status"] == "duplicate":
+            duplicates.append(result["paper"])
+            print(f"  = Already in library: [{result['paper']['id']}]")
+        else:
+            errors.append(result)
+            print(f"  ✗ Error: {result['error']}")
+        print()
+
+    # Summary
+    print("─" * 50)
+    print(f"Done: {len(added)} added, {len(duplicates)} duplicate(s), {len(errors)} error(s)")
+    if errors:
+        print("\nFailed sources:")
+        for e in errors:
+            print(f"  ✗ {e['source']}: {e['error']}")
 
 
 def cmd_search(args):
@@ -163,7 +195,8 @@ def cmd_web_search(args):
 def cmd_list(args):
     """List papers in the library."""
     status_filter = args.status if hasattr(args, "status") else None
-    papers = lib.list_papers(limit=args.limit, status=status_filter)
+    limit = None if getattr(args, "all", False) else args.limit
+    papers = lib.list_papers(limit=limit, status=status_filter)
 
     if not papers:
         print("Your library is empty. Add a paper with: /paper add <arxiv_id or path>")
@@ -260,6 +293,72 @@ def cmd_tag(args):
     merged = list(dict.fromkeys(existing + new_tags))  # deduplicate, preserve order
     lib.update_paper(args.id, {"tags": json.dumps(merged)})
     print(f"Tags updated: {', '.join(merged)}")
+
+
+EDITABLE_FIELDS = {"title", "authors", "year", "abstract", "keywords", "arxiv_id", "doi", "source_url", "tags"}
+
+
+def cmd_edit(args):
+    """Edit metadata fields of a paper."""
+    paper = lib.get_paper(args.id)
+    if not paper:
+        results = lib.search_papers(args.id, limit=1)
+        if results:
+            paper = results[0]
+        else:
+            print(f"Paper not found: {args.id}")
+            return
+
+    pid = paper["id"]
+
+    if not args.assignments:
+        print(f"Usage: /paper edit <id> field=value [field=value ...]")
+        print(f"Editable fields: {', '.join(sorted(EDITABLE_FIELDS))}")
+        print(f"\nCurrent values for [{pid}] {paper.get('title', 'Untitled')}:")
+        for f in sorted(EDITABLE_FIELDS):
+            print(f"  {f}: {paper.get(f)!r}")
+        return
+
+    # Parse key=value assignments
+    updates = {}
+    for token in args.assignments:
+        if "=" not in token:
+            print(f"Skipping unrecognized token (expected key=value): {token!r}")
+            continue
+        key, _, value = token.partition("=")
+        key = key.strip()
+        if key not in EDITABLE_FIELDS:
+            print(f"Unknown field: {key!r}. Editable fields: {', '.join(sorted(EDITABLE_FIELDS))}")
+            continue
+        if key == "year":
+            try:
+                value = int(value)
+            except ValueError:
+                print(f"year must be an integer, got: {value!r}")
+                continue
+        elif key == "tags":
+            # Accept comma-separated list or empty string to clear
+            tags = [t.strip() for t in value.split(",") if t.strip()]
+            value = json.dumps(tags)
+        updates[key] = value
+
+    if not updates:
+        print("No valid updates provided.")
+        return
+
+    # Print diff and apply
+    print(f"Updating [{pid}] {paper.get('title', 'Untitled')}:\n")
+    for k, v in updates.items():
+        old = paper.get(k)
+        if k == "tags":
+            old_display = ", ".join(json.loads(old or "[]"))
+            new_display = ", ".join(json.loads(v))
+            print(f"  {k}: {old_display!r} → {new_display!r}")
+        else:
+            print(f"  {k}: {old!r} → {v!r}")
+
+    lib.update_paper(pid, updates)
+    print("\nUpdated.")
 
 
 def _resolve_paper_id(id_or_query: str) -> Optional[str]:
@@ -475,17 +574,31 @@ def cmd_note(args):
 def cmd_notes(args):
     """List or search notes."""
     if getattr(args, "search", None):
-        # Cross-library note search
+        # Cross-library note search — FTS first, LIKE fallback
         query = " ".join(args.search)
         conn = lib.connect()
-        like = f"%{query}%"
-        rows = conn.execute(
-            """SELECT n.*, p.title as paper_title
-               FROM notes n JOIN papers p ON n.paper_id = p.id
-               WHERE n.content LIKE ?
-               ORDER BY n.created_at DESC LIMIT 20""",
-            (like,),
-        ).fetchall()
+        rows = []
+        try:
+            rows = conn.execute(
+                """SELECT n.*, p.title as paper_title
+                   FROM notes n
+                   JOIN notes_fts f ON n.id = f.rowid
+                   JOIN papers p ON n.paper_id = p.id
+                   WHERE notes_fts MATCH ?
+                   ORDER BY rank LIMIT 20""",
+                (query,),
+            ).fetchall()
+        except Exception:
+            pass
+        if not rows:
+            like = f"%{query}%"
+            rows = conn.execute(
+                """SELECT n.*, p.title as paper_title
+                   FROM notes n JOIN papers p ON n.paper_id = p.id
+                   WHERE n.content LIKE ?
+                   ORDER BY n.created_at DESC LIMIT 20""",
+                (like,),
+            ).fetchall()
         conn.close()
         if not rows:
             print(f"No notes matching '{query}'.")
@@ -493,7 +606,7 @@ def cmd_notes(args):
         print(f"Notes matching '{query}':\n")
         for row in rows:
             row = dict(row)
-            print(f"[{row['created_at'][:10]}] {row.get('paper_title', row['paper_id'])}")
+            print(f"#{row['id']} [{row['created_at'][:10]}] {row.get('paper_title', row['paper_id'])}")
             print(f"  {row['content'][:200]}")
             print(f"  (paper: {row['paper_id']})")
             print()
@@ -517,9 +630,31 @@ def cmd_notes(args):
     print(f"Notes for '{paper.get('title', args.id)}' ({len(notes)} total):\n")
     for note in notes:
         label = f"[{note['note_type']}]" if note["note_type"] != "manual" else ""
-        print(f"  {note['created_at'][:16]} {label}")
+        print(f"  #{note['id']} {note['created_at'][:16]} {label}")
         print(f"  {note['content']}")
         print()
+
+
+def cmd_note_delete(args):
+    """Delete a note by its ID."""
+    conn = lib.connect()
+    row = conn.execute(
+        "SELECT n.*, p.title as paper_title FROM notes n JOIN papers p ON n.paper_id = p.id WHERE n.id=?",
+        (args.note_id,),
+    ).fetchone()
+    conn.close()
+    if not row:
+        print(f"Note #{args.note_id} not found.")
+        return
+    row = dict(row)
+    print(f"Note #{args.note_id} (paper: {row.get('paper_title', row['paper_id'])})")
+    print(f"  {row['content'][:200]}")
+    confirm = input("Delete this note? (y/N): ").strip().lower()
+    if confirm != "y":
+        print("Cancelled.")
+        return
+    lib.delete_note(args.note_id)
+    print(f"Note #{args.note_id} deleted.")
 
 
 def cmd_export(args):
@@ -756,10 +891,11 @@ def main():
     sub = parser.add_subparsers(dest="cmd")
 
     # add
-    p_add = sub.add_parser("add", help="Import a paper (arXiv ID, URL, or local PDF)")
-    p_add.add_argument("source", help="arXiv ID, URL, or local PDF path")
-    p_add.add_argument("--tags", default="", help="Comma-separated tags")
-    p_add.add_argument("--no-download", dest="download", action="store_false", help="Don't download PDF")
+    p_add = sub.add_parser("add", help="Import one or more papers (arXiv IDs, URLs, or local PDFs)")
+    p_add.add_argument("sources", nargs="+", metavar="source",
+                       help="arXiv ID, URL, or local PDF path (repeat for batch import)")
+    p_add.add_argument("--tags", default="", help="Comma-separated tags (applied to all)")
+    p_add.add_argument("--no-download", dest="download", action="store_false", help="Don't download PDFs")
 
     # search (local library)
     p_search = sub.add_parser("search", help="Search your local library")
@@ -774,6 +910,7 @@ def main():
     # list
     p_list = sub.add_parser("list", help="List papers in the library")
     p_list.add_argument("--limit", type=int, default=20)
+    p_list.add_argument("--all", dest="all", action="store_true", help="Show all papers (no limit)")
     p_list.add_argument("--status", choices=["unread", "reading", "read"], help="Filter by read status")
 
     # show
@@ -788,6 +925,16 @@ def main():
     p_tag = sub.add_parser("tag", help="Add tags to a paper")
     p_tag.add_argument("id", help="Paper ID")
     p_tag.add_argument("tags", help="Comma-separated tags to add")
+
+    # edit
+    p_edit = sub.add_parser("edit", help="Edit metadata fields of a paper")
+    p_edit.add_argument("id", help="Paper ID")
+    p_edit.add_argument("assignments", nargs="*", metavar="field=value",
+                        help="Fields to update, e.g. title='New Title' authors='A, B' year=2024")
+
+    # note-delete
+    p_ndel = sub.add_parser("note-delete", help="Delete a note by its ID")
+    p_ndel.add_argument("note_id", type=int, help="Note ID (shown in /paper notes <id>)")
 
     # config
     p_cfg = sub.add_parser("config", help="Show or update configuration")
@@ -847,12 +994,13 @@ def main():
         print("""ScholarMind — literature management in Claude Code
 
 Import & Organize:
-  /paper add <arxiv_id|url|path>           Import a paper
-  /paper list [--status unread]            List papers
+  /paper add <id|url|path> [...]           Import one or more papers (batch supported)
+  /paper list [--status unread] [--all]    List papers (default: last 20)
   /paper search <keywords>                 Search your local library
   /paper web-search <keywords>             Search arXiv
   /paper show <id>                         Show paper details
-  /paper tag <id> <tag1,tag2>              Add tags
+  /paper edit <id> field=value ...         Edit metadata (title, authors, year, tags, ...)
+  /paper tag <id> <tag1,tag2>              Append tags
   /paper status <id> <unread|reading|read> Update read status
   /paper delete <id>                       Remove from library
 
@@ -863,8 +1011,9 @@ Read & Annotate:
   /paper sections <id>                     List detected sections
   /paper explain <id> <keyword or phrase>  Find and explain a term in the paper
   /paper note <id> <text>                  Add a note to a paper
-  /paper notes <id>                        List notes for a paper
+  /paper notes <id>                        List notes for a paper (shows note IDs)
   /paper notes --search <keywords>         Search notes across all papers
+  /paper note-delete <note_id>             Delete a note by ID
   /paper export <id> [-o file.md]          Export notes as Markdown
 
 Discover & Synthesize:
@@ -888,12 +1037,14 @@ Config:
         "show": cmd_show,
         "delete": cmd_delete,
         "tag": cmd_tag,
+        "edit": cmd_edit,
         "config": cmd_config,
         "read": cmd_read,
         "sections": cmd_sections,
         "explain": cmd_explain,
         "note": cmd_note,
         "notes": cmd_notes,
+        "note-delete": cmd_note_delete,
         "export": cmd_export,
         "status": cmd_status,
         "related": cmd_related,

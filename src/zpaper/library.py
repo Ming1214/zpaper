@@ -76,6 +76,31 @@ CREATE TABLE IF NOT EXISTS notes (
     FOREIGN KEY (paper_id) REFERENCES papers(id)
 );
 
+CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
+    id UNINDEXED,
+    paper_id UNINDEXED,
+    content,
+    content='notes',
+    content_rowid='id'
+);
+
+CREATE TRIGGER IF NOT EXISTS notes_ai AFTER INSERT ON notes BEGIN
+    INSERT INTO notes_fts(rowid, id, paper_id, content)
+    VALUES (new.id, new.id, new.paper_id, new.content);
+END;
+
+CREATE TRIGGER IF NOT EXISTS notes_au AFTER UPDATE ON notes BEGIN
+    INSERT INTO notes_fts(notes_fts, rowid, id, paper_id, content)
+    VALUES ('delete', old.id, old.id, old.paper_id, old.content);
+    INSERT INTO notes_fts(rowid, id, paper_id, content)
+    VALUES (new.id, new.id, new.paper_id, new.content);
+END;
+
+CREATE TRIGGER IF NOT EXISTS notes_ad AFTER DELETE ON notes BEGIN
+    INSERT INTO notes_fts(notes_fts, rowid, id, paper_id, content)
+    VALUES ('delete', old.id, old.id, old.paper_id, old.content);
+END;
+
 CREATE TABLE IF NOT EXISTS config (
     key   TEXT PRIMARY KEY,
     value TEXT
@@ -269,6 +294,10 @@ def fetch_arxiv_metadata(arxiv_id: str) -> dict:
         if cats:
             result["keywords"] = ", ".join(cats)
 
+        doi_m = re.search(r"<arxiv:doi[^>]*>(.*?)</arxiv:doi>", text, re.DOTALL)
+        if doi_m:
+            result["doi"] = doi_m.group(1).strip()
+
         result["arxiv_id"] = clean_id
         result["source_url"] = f"https://arxiv.org/abs/{clean_id}"
 
@@ -353,17 +382,28 @@ def search_papers(query: str, limit: int = 10) -> list:
     return [dict(r) for r in rows]
 
 
-def list_papers(limit: int = 20, status: Optional[str] = None) -> list:
+def list_papers(limit: Optional[int] = 20, status: Optional[str] = None) -> list:
     conn = connect()
-    if status:
-        rows = conn.execute(
-            "SELECT * FROM papers WHERE read_status=? ORDER BY import_date DESC LIMIT ?",
-            (status, limit),
-        ).fetchall()
+    if limit is None:
+        if status:
+            rows = conn.execute(
+                "SELECT * FROM papers WHERE read_status=? ORDER BY import_date DESC",
+                (status,),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM papers ORDER BY import_date DESC"
+            ).fetchall()
     else:
-        rows = conn.execute(
-            "SELECT * FROM papers ORDER BY import_date DESC LIMIT ?", (limit,)
-        ).fetchall()
+        if status:
+            rows = conn.execute(
+                "SELECT * FROM papers WHERE read_status=? ORDER BY import_date DESC LIMIT ?",
+                (status, limit),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM papers ORDER BY import_date DESC LIMIT ?", (limit,)
+            ).fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
@@ -403,6 +443,14 @@ def add_note(paper_id: str, content: str, note_type: str = "manual") -> dict:
     note_id = cur.lastrowid
     conn.close()
     return {"id": note_id, "paper_id": paper_id, "content": content}
+
+
+def delete_note(note_id: int) -> bool:
+    conn = connect()
+    cur = conn.execute("DELETE FROM notes WHERE id=?", (note_id,))
+    conn.commit()
+    conn.close()
+    return cur.rowcount > 0
 
 
 def list_notes(paper_id: str) -> list:
