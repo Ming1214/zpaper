@@ -26,12 +26,18 @@ def search_arxiv(query: str, max_results: int = 10) -> list:
         "sortOrder": "descending",
     }
 
-    try:
-        resp = requests.get(url, params=params, timeout=20)
-        resp.raise_for_status()
-        return _parse_arxiv_feed(resp.text)
-    except Exception as e:
-        return [{"error": str(e)}]
+    for attempt in range(3):
+        try:
+            resp = requests.get(url, params=params, timeout=20)
+            if resp.status_code == 429:
+                wait = 5 * (attempt + 1)
+                time.sleep(wait)
+                continue
+            resp.raise_for_status()
+            return _parse_arxiv_feed(resp.text)
+        except Exception as e:
+            return [{"error": str(e)}]
+    return [{"error": "arXiv API rate limit exceeded, please retry in a moment"}]
 
 
 def _parse_arxiv_feed(xml_text: str) -> list:

@@ -108,6 +108,7 @@ Two sub-modes depending on whether `--section` is provided:
 3. **You (Claude) must** walk through the paper in your own structure:
    - Divide the text into logical sections yourself
    - Explain each part clearly, highlight key concepts
+   - **Data fidelity rule**: for any section containing quantitative results, tables, or comparisons — quote the actual numbers and name the specific models/baselines; never replace raw data with vague phrases like "results show X outperforms Y"
    - Ask **one focused question** per section to check understanding
    - Wait for user's response before moving on
 4. After all sections, offer a final synthesis and suggest: `paper status <id> read`
@@ -115,16 +116,19 @@ Two sub-modes depending on whether `--section` is provided:
 **Section-by-section deep read** (`paper read <id> --mode deep --section N`):
 1. First, show available sections: `paper sections <id>`
 2. Start with section 0: `paper read <id> --mode deep --section 0`
-3. The script outputs one section's text between `--- SECTION TEXT START ---` and `--- SECTION TEXT END ---`
-4. **You (Claude) must**:
-   - Explain the section in clear language
+3. The script outputs one chunk of a section between `--- SECTION TEXT START ---` and `--- SECTION TEXT END ---`
+4. **Chunked sections**: if the output contains a `MORE CONTENT:` line, the section is split across multiple chunks. The line tells you the exact command to run for the next chunk. After analyzing the current chunk, ask the user: *"This section continues — shall I read the next part?"* If yes, run the next-chunk command.
+5. **You (Claude) must** for each chunk:
+   - Explain the content in clear language
    - Highlight key concepts or surprising claims
+   - **Data fidelity rule**: if numbers, table rows, or metric values appear in the text, reproduce them explicitly — do NOT paraphrase them into vague claims; the user cannot see the raw PDF text, so your output is their only window into the data
+   - For results/experiment/ablation sections specifically: name every model variant or baseline compared; quote the best and worst numbers; explain what the gap means
    - Ask **one focused question** to check user's understanding (not multiple questions at once)
    - Wait for user's response before moving on
-5. When user is ready for the next section, increment `--section N` by 1
-6. After each section, offer: *"Ready for the next section? Or want to add a note about something here?"*
-7. If user wants to note something: `paper note <id> "<their insight>" --type insight`
-8. When all sections are done, offer a final synthesis and suggest marking as read: `paper status <id> read`
+6. When user is ready for the next **section** (not chunk), increment `--section N` by 1, reset `--chunk` to 0 (or omit it)
+7. After each section, offer: *"Ready for the next section? Or want to add a note about something here?"*
+8. If user wants to note something: `paper note <id> "<their insight>" --type insight`
+9. When all sections are done, offer a final synthesis and suggest marking as read: `paper status <id> read`
 
 **When to use which**: prefer full-text mode when section detection looks unreliable (e.g. `paper sections` returns garbled titles). Use section mode when the paper has clean detected sections and the user wants to jump to a specific one.
 

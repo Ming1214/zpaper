@@ -184,7 +184,8 @@ def cmd_web_search(args):
     results = srch.search_arxiv(query, max_results=args.limit)
 
     if not results or (len(results) == 1 and "error" in results[0]):
-        print("Search failed or no results. Check your internet connection.")
+        err = results[0].get("error", "unknown error") if results else "no results"
+        print(f"Search failed: {err}")
         return
 
     print(srch.format_search_results(results))
@@ -420,7 +421,7 @@ def cmd_read(args):
             print(text)
             print("--- PAPER TEXT END ---")
             print()
-            print("INSTRUCTION_FOR_CLAUDE: Deep-read the full paper. Walk through it section by section in your own structure, explain each part clearly, highlight key concepts, and ask the user one focused question per section to check understanding. Offer to add notes at any point.")
+            print("INSTRUCTION_FOR_CLAUDE: Deep-read the full paper section by section. For each section: (1) explain the content clearly; (2) for any section containing quantitative data, tables, or experimental results — quote the actual numbers, reproduce table rows, and name the compared baselines; never replace raw data with vague summaries like 'results show X is better'; (3) highlight the most surprising or non-obvious insight; (4) ask the user ONE focused question to check understanding, then wait. Offer to add notes at any point.")
             if paper.get("read_status") == "unread":
                 lib.update_paper(pid, {"read_status": "reading"})
             return
@@ -438,19 +439,40 @@ def cmd_read(args):
                 return
 
             sec = sections[section_idx]
+            chunk_idx = getattr(args, "chunk", 0)
+            chunk = rdr.get_section_chunk(sec, chunk_idx)
+
             print(f"## DEEP READ MODE — {paper.get('title', pid)}")
             print(f"## Section [{section_idx}/{len(sections)-1}]: {sec['title']}")
+            if chunk["total_chunks"] > 1:
+                print(f"## Chunk [{chunk['chunk_idx']+1}/{chunk['total_chunks']}]")
             if result.get("truncated"):
                 print("(Note: PDF was truncated due to length)")
             print()
             print("--- SECTION TEXT START ---")
-            print(sec["text"])
+            print(chunk["text"])
             print("--- SECTION TEXT END ---")
             print()
             print(f"TOTAL SECTIONS: {len(sections)}")
             print("SECTION LIST: " + " | ".join(f"[{i}] {s['title']}" for i, s in enumerate(sections)))
+            if chunk["has_more"]:
+                next_chunk = chunk["chunk_idx"] + 1
+                print(f"MORE CONTENT: This section has {chunk['total_chunks']} chunks total. "
+                      f"Run `paper read {pid} --mode deep --section {section_idx} --chunk {next_chunk}` to read the next chunk.")
             print()
-            print("INSTRUCTION_FOR_CLAUDE: Analyze this section. Then ask the user one focused question to check understanding. Offer to move to the next section when ready.")
+            # Detect whether this section is data-heavy (experiments, results, ablation)
+            data_section_keywords = {"experiment", "experiments", "results", "evaluation",
+                                     "ablation", "ablation study", "analysis"}
+            is_data_section = sec["title"].lower().strip() in data_section_keywords
+            if chunk["has_more"]:
+                print("INSTRUCTION_FOR_CLAUDE: This chunk is PART of a longer section — there is more content after this. "
+                      "Analyze the text above, quote any key numbers or claims you find, then ask the user: "
+                      "'This section continues — shall I read the next part?' "
+                      "If yes, run the next-chunk command shown in MORE CONTENT above.")
+            elif is_data_section:
+                print("INSTRUCTION_FOR_CLAUDE: This is a data/results section. You MUST: (1) reproduce the key numbers, table rows, and metric values from the text — do NOT summarize them as vague claims; (2) name every baseline or model variant being compared; (3) explain what each result means and whether it is surprising; (4) identify the single most important finding with its exact number. Then ask the user ONE focused question and wait for their response before moving on.")
+            else:
+                print("INSTRUCTION_FOR_CLAUDE: Analyze this section clearly. Highlight the most important concept or claim. If the section contains any numbers, metrics, or comparisons, quote them explicitly — do not replace them with vague summaries. Then ask the user ONE focused question to check understanding, and wait for their response before moving on.")
             if paper.get("read_status") == "unread":
                 lib.update_paper(pid, {"read_status": "reading"})
             return
@@ -1023,6 +1045,7 @@ def main():
     p_read.add_argument("id", help="Paper ID or search query")
     p_read.add_argument("--mode", choices=["summary", "deep"], default="summary")
     p_read.add_argument("--section", type=int, default=None, help="Section index for deep mode")
+    p_read.add_argument("--chunk", type=int, default=0, help="Chunk index within a section (default: 0)")
 
     # sections
     p_sec = sub.add_parser("sections", help="List detected sections in a paper's PDF")
@@ -1093,9 +1116,10 @@ Import & Organize:
   /paper delete <id>                       Remove from library
 
 Read & Annotate:
-  /paper read <id>                         Summarize a paper
-  /paper read <id> --mode deep             Section-by-section deep read
-  /paper read <id> --mode deep --section N Jump to section N
+  /paper read <id>                                      Summarize a paper
+  /paper read <id> --mode deep                          Section-by-section deep read
+  /paper read <id> --mode deep --section N              Jump to section N
+  /paper read <id> --mode deep --section N --chunk K    Read chunk K of section N
   /paper sections <id>                     List detected sections
   /paper explain <id> <keyword or phrase>  Find and explain a term in the paper
   /paper note <id> <text>                  Add a note to a paper

@@ -53,15 +53,50 @@ def extract_full_text(pdf_path: str, max_chars: int = 80000) -> dict:
         return {"error": str(e), "text": "", "pages": 0}
 
 
+CHUNK_SIZE = 8000
+
+
 def _slice_sections(text: str, positions: list, skip_refs: bool = True) -> list:
-    """Given sorted (pos, title) pairs, slice text into section dicts."""
+    """Given sorted (pos, title) pairs, slice text into section dicts.
+
+    Each section dict contains the full text plus chunk metadata so callers
+    can serve one chunk at a time and indicate to Claude whether more exists.
+    """
     sections = []
     for i, (pos, title) in enumerate(positions):
         end = positions[i + 1][0] if i + 1 < len(positions) else len(text)
         if skip_refs and re.match(r"References|Bibliography", title, re.IGNORECASE):
             continue
-        sections.append({"title": title, "text": text[pos:end].strip()[:8000]})
+        full_text = text[pos:end].strip()
+        total_chunks = max(1, (len(full_text) + CHUNK_SIZE - 1) // CHUNK_SIZE)
+        sections.append({
+            "title": title,
+            "text": full_text,
+            "total_chunks": total_chunks,
+        })
     return sections
+
+
+def get_section_chunk(section: dict, chunk_idx: int) -> dict:
+    """Return a single chunk from a section dict produced by _slice_sections.
+
+    Returns a dict with:
+      - text: the chunk text
+      - chunk_idx: 0-based index of this chunk
+      - total_chunks: total number of chunks in the section
+      - has_more: True if more chunks follow
+    """
+    full_text = section["text"]
+    total_chunks = section["total_chunks"]
+    chunk_idx = max(0, min(chunk_idx, total_chunks - 1))
+    start = chunk_idx * CHUNK_SIZE
+    end = start + CHUNK_SIZE
+    return {
+        "text": full_text[start:end],
+        "chunk_idx": chunk_idx,
+        "total_chunks": total_chunks,
+        "has_more": chunk_idx + 1 < total_chunks,
+    }
 
 
 def _detect_whitelist(text: str) -> list:
@@ -178,7 +213,11 @@ def extract_sections(pdf_path: str) -> dict:
     structural_sections = _slice_sections(text, structural_pos) if len(structural_pos) >= 2 else []
 
     # `sections` keeps backward-compat: prefer whitelist, fall back to structural, then full text
-    primary = whitelist_sections or structural_sections or [{"title": "Full Text", "text": text[:8000]}]
+    full_text_fallback = text.strip()
+    fallback_chunks = max(1, (len(full_text_fallback) + CHUNK_SIZE - 1) // CHUNK_SIZE)
+    primary = whitelist_sections or structural_sections or [
+        {"title": "Full Text", "text": full_text_fallback, "total_chunks": fallback_chunks}
+    ]
 
     return {
         "sections": primary,
