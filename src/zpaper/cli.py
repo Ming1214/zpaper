@@ -408,20 +408,34 @@ def cmd_read(args):
     if mode == "deep":
         section_idx = getattr(args, "section", None)
         if section_idx is None:
-            # No --section given: output full text for the LLM to deep-read freely
-            text = rdr.get_paper_text_for_summary(file_path)
-            if text.startswith("ERROR"):
-                print(f"Failed to extract PDF text: {text}")
+            # No --section given: output full text chunk by chunk for the LLM to deep-read freely
+            chunk_idx = getattr(args, "chunk", 0) or 0
+            result = rdr.get_full_text_chunk(file_path, chunk_idx)
+            if result.get("error"):
+                print(f"Failed to extract PDF text: {result['error']}")
                 return
             print(f"## DEEP READ MODE — {paper.get('title', pid)}")
             print(f"Paper ID: {pid}")
             print(f"Authors: {paper.get('authors', 'Unknown')} ({paper.get('year', '?')})")
+            if result["total_chunks"] > 1:
+                print(f"## Chunk [{result['chunk_idx']+1}/{result['total_chunks']}]")
             print()
             print("--- PAPER TEXT START ---")
-            print(text)
+            print(result["text"])
             print("--- PAPER TEXT END ---")
             print()
-            print("INSTRUCTION_FOR_CLAUDE: Deep-read the full paper section by section. For each section: (1) explain the content clearly; (2) for any section containing quantitative data, tables, or experimental results — quote the actual numbers, reproduce table rows, and name the compared baselines; never replace raw data with vague summaries like 'results show X is better'; (3) highlight the most surprising or non-obvious insight; (4) ask the user ONE focused question to check understanding, then wait. Offer to add notes at any point.")
+            if result["has_more"]:
+                next_chunk = result["chunk_idx"] + 1
+                print(f"MORE CONTENT: The full text has {result['total_chunks']} chunks total. "
+                      f"Run `paper read {pid} --mode deep --chunk {next_chunk}` to read the next chunk.")
+                print()
+                print("INSTRUCTION_FOR_CLAUDE: This chunk is PART of the full paper — there is more content after this. "
+                      "Deep-read the text above section by section. For each section: (1) explain the content clearly; (2) for any section containing quantitative data, tables, or experimental results — quote the actual numbers, reproduce table rows, and name the compared baselines; never replace raw data with vague summaries like 'results show X is better'; (3) highlight the most surprising or non-obvious insight. Then ask the user: 'The paper continues — shall I read the next part?' If yes, run the next-chunk command shown in MORE CONTENT above.")
+            else:
+                if result["total_chunks"] > 1:
+                    print("INSTRUCTION_FOR_CLAUDE: This is the FINAL chunk of the paper. Deep-read the text above section by section with the same rigor (quote actual numbers, name baselines), then provide a final synthesis of the whole paper, ask the user ONE focused question to check understanding, and offer to add notes.")
+                else:
+                    print("INSTRUCTION_FOR_CLAUDE: Deep-read the full paper section by section. For each section: (1) explain the content clearly; (2) for any section containing quantitative data, tables, or experimental results — quote the actual numbers, reproduce table rows, and name the compared baselines; never replace raw data with vague summaries like 'results show X is better'; (3) highlight the most surprising or non-obvious insight; (4) ask the user ONE focused question to check understanding, then wait. Offer to add notes at any point.")
             if paper.get("read_status") == "unread":
                 lib.update_paper(pid, {"read_status": "reading"})
             return
@@ -430,7 +444,8 @@ def cmd_read(args):
         sections = result.get("sections", [])
         if not sections:
             print("Could not detect sections. Falling back to full text.")
-            mode = "summary"
+            print("Run `paper read {} --mode deep` to page through the full text chunk by chunk.".format(pid))
+            return
         else:
             if section_idx >= len(sections):
                 print(f"Section {section_idx} not found. Paper has {len(sections)} sections:")
@@ -446,8 +461,6 @@ def cmd_read(args):
             print(f"## Section [{section_idx}/{len(sections)-1}]: {sec['title']}")
             if chunk["total_chunks"] > 1:
                 print(f"## Chunk [{chunk['chunk_idx']+1}/{chunk['total_chunks']}]")
-            if result.get("truncated"):
-                print("(Note: PDF was truncated due to length)")
             print()
             print("--- SECTION TEXT START ---")
             print(chunk["text"])
@@ -477,21 +490,37 @@ def cmd_read(args):
                 lib.update_paper(pid, {"read_status": "reading"})
             return
 
-    # Summary mode (default)
-    text = rdr.get_paper_text_for_summary(file_path)
-    if text.startswith("ERROR"):
-        print(f"Failed to extract PDF text: {text}")
+    # Summary mode (default) — page through the full text chunk by chunk
+    chunk_idx = getattr(args, "chunk", 0) or 0
+    result = rdr.get_full_text_chunk(file_path, chunk_idx)
+    if result.get("error"):
+        print(f"Failed to extract PDF text: {result['error']}")
         return
 
     print(f"## SUMMARY MODE — {paper.get('title', pid)}")
     print(f"Paper ID: {pid}")
     print(f"Authors: {paper.get('authors', 'Unknown')} ({paper.get('year', '?')})")
+    if result["total_chunks"] > 1:
+        print(f"## Chunk [{result['chunk_idx']+1}/{result['total_chunks']}]")
     print()
     print("--- PAPER TEXT START ---")
-    print(text)
+    print(result["text"])
     print("--- PAPER TEXT END ---")
     print()
-    print("INSTRUCTION_FOR_CLAUDE: Generate a structured summary with these sections: **Background & Motivation** | **Core Method** | **Key Results** | **Limitations** | **Relation to Prior Work**. After the summary, ask if the user wants to save it as a note or enter deep read mode.")
+    if result["has_more"]:
+        next_chunk = result["chunk_idx"] + 1
+        print(f"MORE CONTENT: The full text has {result['total_chunks']} chunks total. "
+              f"Run `paper read {pid} --chunk {next_chunk}` to read the next chunk.")
+        print()
+        print("INSTRUCTION_FOR_CLAUDE: This chunk is PART of the paper — a complete summary needs the rest. "
+              "Briefly note the key points of this chunk, then ask the user: 'The paper continues — shall I read the next part?' "
+              "If yes, run the next-chunk command shown in MORE CONTENT above. "
+              "Only after the final chunk, generate the structured summary with these sections: **Background & Motivation** | **Core Method** | **Key Results** | **Limitations** | **Relation to Prior Work**.")
+    else:
+        if result["total_chunks"] > 1:
+            print("INSTRUCTION_FOR_CLAUDE: This is the FINAL chunk of the paper. You have now seen the whole text — generate the structured summary covering the entire paper with these sections: **Background & Motivation** | **Core Method** | **Key Results** | **Limitations** | **Relation to Prior Work**. After the summary, ask if the user wants to save it as a note or enter deep read mode.")
+        else:
+            print("INSTRUCTION_FOR_CLAUDE: Generate a structured summary with these sections: **Background & Motivation** | **Core Method** | **Key Results** | **Limitations** | **Relation to Prior Work**. After the summary, ask if the user wants to save it as a note or enter deep read mode.")
 
     # Mark as reading
     if paper.get("read_status") == "unread":
@@ -945,18 +974,46 @@ def cmd_compare(args):
         if args.mode == "full":
             fp = p.get("file_path")
             if fp and os.path.exists(fp):
-                text = rdr.get_paper_text_for_summary(fp)
-                print(f"--- PAPER {i} [{pid}] TEXT START ---")
-                print(text)
-                print(f"--- PAPER {i} [{pid}] TEXT END ---")
+                chunk_idx = getattr(args, "chunk", 0) or 0
+                result = rdr.get_full_text_chunk(fp, chunk_idx)
+                if result.get("error"):
+                    print(f"[Paper {i}: failed to extract PDF text: {result['error']}]")
+                else:
+                    if result["total_chunks"] > 1:
+                        print(f"[Paper {i} text: chunk {result['chunk_idx']+1}/{result['total_chunks']}]")
+                    print(f"--- PAPER {i} [{pid}] TEXT START ---")
+                    print(result["text"])
+                    print(f"--- PAPER {i} [{pid}] TEXT END ---")
+                    if result["has_more"]:
+                        print(f"MORE CONTENT for Paper {i}: run `paper compare {' '.join(ids)} --mode full --chunk {result['chunk_idx']+1}` for the next chunk.")
             else:
                 print(f"[Paper {i}: PDF not available — using metadata only]")
             print()
 
     titles = [p.get("title", p["id"]) for p in papers]
     refs = " | ".join(f"[Paper {i+1}: {t[:40]}]" for i, t in enumerate(titles))
+    more_content_note = ""
+    if args.mode == "full":
+        # If any paper's text has more chunks, instruct Claude to page through before comparing.
+        chunk_idx = getattr(args, "chunk", 0) or 0
+        any_more = False
+        for p in papers:
+            fp = p.get("file_path")
+            if fp and os.path.exists(fp):
+                r = rdr.get_full_text_chunk(fp, chunk_idx)
+                if r.get("has_more"):
+                    any_more = True
+                    break
+        if any_more:
+            more_content_note = (
+                "\nNOTE: The text above is only ONE chunk of each paper — more content is available. "
+                "Do NOT produce the comparison yet. Briefly note the key points of this chunk for each paper, "
+                "then run the MORE CONTENT command shown above to fetch the next chunk. "
+                "Only after the final chunk, produce the full structured comparative analysis below.\n"
+            )
     print(
         f"INSTRUCTION_FOR_CLAUDE: You are given {n} research papers above ({refs}). "
+        + more_content_note +
         "Produce a structured comparative analysis with these sections:\n"
         "1. **Overview Table** — one row per paper: title, year, core contribution (1 sentence)\n"
         "2. **Background & Motivation** — what problem each addresses, and how they differ\n"
@@ -1099,6 +1156,12 @@ def main():
         default="abstract",
         help="abstract=metadata only (default); full=include PDF text",
     )
+    p_compare.add_argument(
+        "--chunk",
+        type=int,
+        default=0,
+        help="Chunk index for --mode full when the text spans multiple chunks (default: 0)",
+    )
 
     # help fallback
     if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help", "help"):
@@ -1116,8 +1179,10 @@ Import & Organize:
   /paper delete <id>                       Remove from library
 
 Read & Annotate:
-  /paper read <id>                                      Summarize a paper
-  /paper read <id> --mode deep                          Section-by-section deep read
+  /paper read <id>                                      Summarize a paper (chunked for large PDFs)
+  /paper read <id> --chunk K                            Read chunk K of the full text
+  /paper read <id> --mode deep                          Full-text deep read (chunked for large PDFs)
+  /paper read <id> --mode deep --chunk K                Read chunk K of the full text (deep mode)
   /paper read <id> --mode deep --section N              Jump to section N
   /paper read <id> --mode deep --section N --chunk K    Read chunk K of section N
   /paper sections <id>                     List detected sections
@@ -1133,7 +1198,7 @@ Discover & Synthesize:
   /paper graph [topic]                     Literature network overview
   /paper survey [topic]                    Generate a survey draft
   /paper compare <id1> <id2> [...]         Compare 2–5 papers side by side
-  /paper compare <ids...> --mode full      Compare with full PDF text
+  /paper compare <ids...> --mode full      Compare with full PDF text (add --chunk K to page)
 
 Config:
   /paper config                            Show library settings

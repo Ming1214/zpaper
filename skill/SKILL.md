@@ -51,6 +51,7 @@ Never reconstruct logic yourself — always delegate to the script.
 |-----------|---------------|
 | "summarize this paper" / "read paper X" | `paper read <id>` |
 | "deep read paper X" / "精读" | `paper read <id> --mode deep` |
+| "continue" (long paper, mid-read) | `paper read <id> --chunk <K>` (add `--mode deep` in deep read) |
 | "next section" (during deep read) | `paper read <id> --mode deep --section <N>` |
 | "what sections does paper X have" | `paper sections <id>` |
 | "explain this phrase" / "I don't understand X" | `paper explain <id> <keyword or phrase>` |
@@ -88,8 +89,8 @@ Never reconstruct logic yourself — always delegate to the script.
 ### Summary Mode
 
 1. Run: `paper read <id>`
-2. The script outputs the full paper text between `--- PAPER TEXT START ---` and `--- PAPER TEXT END ---`
-3. **You (Claude) must generate the structured summary** with these five sections:
+2. The script outputs the paper text between `--- PAPER TEXT START ---` and `--- PAPER TEXT END ---`. Large PDFs are split into chunks; if the output contains a `MORE CONTENT:` line, run the command it shows (`paper read <id> --chunk K`) to fetch the next chunk before summarizing.
+3. **You (Claude) must generate the structured summary** (after the final chunk) with these five sections:
    - **Background & Motivation** — What problem does this solve? Why does it matter?
    - **Core Method** — The key technical contribution, explained clearly
    - **Key Results** — Main experimental findings with numbers where available
@@ -104,7 +105,7 @@ Two sub-modes depending on whether `--section` is provided:
 
 **Full-text deep read** (`paper read <id> --mode deep`, no `--section`):
 1. Run: `paper read <id> --mode deep`
-2. The script outputs the full paper text between `--- PAPER TEXT START ---` and `--- PAPER TEXT END ---`
+2. The script outputs the paper text between `--- PAPER TEXT START ---` and `--- PAPER TEXT END ---`. Large PDFs are split into chunks; if the output contains a `MORE CONTENT:` line, run the command it shows (`paper read <id> --mode deep --chunk K`) to fetch the next chunk.
 3. **You (Claude) must** walk through the paper in your own structure:
    - Divide the text into logical sections yourself
    - Explain each part clearly, highlight key concepts
@@ -208,7 +209,7 @@ Always summarize the result naturally. Don't dump raw script output verbatim.
 ### Compare Mode (`compare`)
 
 1. Run: `paper compare <id1> <id2> [id3 ...]` (2–5 papers)
-   - Add `--mode full` to include full PDF text (requires PDFs to be downloaded)
+   - Add `--mode full` to include full PDF text (requires PDFs to be downloaded). Large PDFs are split into chunks; if the output contains a `MORE CONTENT for Paper N:` line, run the command it shows (`paper compare <ids...> --mode full --chunk K`) to fetch the next chunk before writing the analysis.
    - Default (`--mode abstract`) uses only metadata — works without PDFs, faster
 2. Script outputs metadata (and optionally full text) for each paper, a pairwise similarity score for 2-paper comparisons, and ends with `INSTRUCTION_FOR_CLAUDE`
 3. **You (Claude) must write a structured comparative analysis**:

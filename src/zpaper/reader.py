@@ -13,10 +13,14 @@ except ImportError:
     fitz = None
 
 
-def extract_full_text(pdf_path: str, max_chars: int = 80000) -> dict:
+CHUNK_SIZE = 8000
+
+
+def extract_full_text(pdf_path: str, max_chars: Optional[int] = None) -> dict:
     """
     Extract full text from a PDF, returning structured sections.
-    max_chars limits total text to avoid context overflow.
+    The text is never truncated: large PDFs are served in CHUNK_SIZE pieces
+    via get_full_text_chunk(), so callers always have access to everything.
     """
     if fitz is None:
         return {"error": "pymupdf not installed", "text": "", "pages": 0}
@@ -36,24 +40,44 @@ def extract_full_text(pdf_path: str, max_chars: int = 80000) -> dict:
         doc.close()
         full_text = "\n\n".join(all_text)
 
-        truncated = False
-        if len(full_text) > max_chars:
-            full_text = full_text[:max_chars]
-            # Don't cut mid-word
-            full_text = full_text[:full_text.rfind("\n")]
-            truncated = True
-
         return {
             "text": full_text,
             "pages": pages,
             "chars": len(full_text),
-            "truncated": truncated,
+            "truncated": False,
         }
     except Exception as e:
         return {"error": str(e), "text": "", "pages": 0}
 
 
-CHUNK_SIZE = 8000
+def get_full_text_chunk(pdf_path: str, chunk_idx: int = 0) -> dict:
+    """Return one CHUNK_SIZE chunk of the PDF's full text.
+
+    Large PDFs are never truncated at the source; callers page through the
+    text one chunk at a time using the returned metadata:
+      - text: the chunk text
+      - chunk_idx: 0-based index of this chunk
+      - total_chunks: total number of chunks
+      - has_more: True if more chunks follow
+      - pages: total page count of the PDF
+    """
+    result = extract_full_text(pdf_path)
+    if result.get("error"):
+        return result
+
+    text = result["text"]
+    total_chunks = max(1, (len(text) + CHUNK_SIZE - 1) // CHUNK_SIZE)
+    chunk_idx = max(0, min(chunk_idx, total_chunks - 1))
+    start = chunk_idx * CHUNK_SIZE
+    end = start + CHUNK_SIZE
+    return {
+        "text": text[start:end],
+        "chunk_idx": chunk_idx,
+        "total_chunks": total_chunks,
+        "has_more": chunk_idx + 1 < total_chunks,
+        "pages": result["pages"],
+        "chars": result["chars"],
+    }
 
 
 def _slice_sections(text: str, positions: list, skip_refs: bool = True) -> list:
@@ -199,12 +223,12 @@ def extract_sections(pdf_path: str) -> dict:
     Returns two candidate section lists (whitelist + structural) for the LLM
     to reconcile into the final structure.
     """
-    result = extract_full_text(pdf_path, max_chars=100000)
+    result = extract_full_text(pdf_path)
     if result.get("error"):
         return result
 
     text = result["text"]
-    meta = {"pages": result["pages"], "truncated": result["truncated"]}
+    meta = {"pages": result["pages"], "truncated": False}
 
     whitelist_pos = _detect_whitelist(text)
     structural_pos = _detect_structural(text)
@@ -225,20 +249,6 @@ def extract_sections(pdf_path: str) -> dict:
         "sections_structural": structural_sections,
         **meta,
     }
-
-
-def get_paper_text_for_summary(pdf_path: str) -> str:
-    """Return full paper text formatted for summarization prompt."""
-    result = extract_full_text(pdf_path, max_chars=60000)
-    if result.get("error"):
-        return f"ERROR: {result['error']}"
-
-    header = f"[{result['pages']} pages"
-    if result["truncated"]:
-        header += ", truncated to first ~60k chars"
-    header += "]"
-
-    return f"{header}\n\n{result['text']}"
 
 
 def get_section_text(pdf_path: str, section_index: int) -> Optional[dict]:
@@ -282,7 +292,7 @@ def search_text(pdf_path: str, query: str, context_lines: int = 8,
     so that PDF line-break artifacts and minor OCR differences don't block hits.
     Each result includes the matching line(s) and surrounding context.
     """
-    result = extract_full_text(pdf_path, max_chars=200000)
+    result = extract_full_text(pdf_path)
     if result.get("error"):
         return []
 
